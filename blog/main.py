@@ -1,9 +1,8 @@
 from typing import Union, Optional
 
-from fastapi import FastAPI, Query, Path
+from fastapi import FastAPI, Query, Path, Body, HTTPException
 from blog.model import user
 from blog.model import post
-
 
 app = FastAPI()
 
@@ -23,6 +22,21 @@ def get_user(user_id: int = Path(..., ge=0.0)) -> Optional[user.User]:
     :param user_id is required, greater than 0
     """
     return user.get_user_by_id(user_id)
+
+
+@app.post("/users/")
+def create_user(username: str = Body(...,min_length=1,
+                                     max_length=10,
+                                     regex='\w'),
+                surname: str = Body(..., min_length=1,
+                                     max_length=10,
+                                     regex='\w')):
+    try:
+        return user.create_user(username, surname)
+    except user.DuplicateUserCreationException as e:
+        raise HTTPException(status_code=409,
+                            detail=str(e))
+
 
 
 @app.get("/posts")
