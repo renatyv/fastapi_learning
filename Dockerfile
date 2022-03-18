@@ -1,10 +1,13 @@
-FROM python:3.9.11
-WORKDIR /usr/src/blog
+FROM python:3.9
+
+WORKDIR /code
 
 #install FastAPI and Pytest with all the requirements
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+COPY ./requirements.txt /code/requirements.txt
+RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
-COPY . .
+COPY ./blog /code/blog
 
-CMD ["python", "uvicorn blog.main:app --host 0.0.0.0 --port 8000 "]
+CMD ["uvicorn", "blog.main:app", "--host", "0.0.0.0" , "--port", "8100"]
+
+EXPOSE 8100
