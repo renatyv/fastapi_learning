@@ -24,17 +24,30 @@ class Post(BaseModel):
     text: str
 
 
-posts = [Post(**post) for post in posts_data]
+local_posts = [Post(**post) for post in posts_data]
 
 
 def get_all_posts() -> list[Post]:
-    return posts
+    return local_posts
 
 
-def get_post_by_post_id(post_id: int) -> Optional[Post]:
+def get_post_by_post_id(post_id: int, posts=None) -> Optional[Post]:
     """filter posts by post_id"""
+    if not posts:
+        posts = local_posts
+
     found_posts = [post for post in posts if post.post_id == post_id]
     if found_posts:
         return found_posts[0]
     else:
         return None
+
+
+def create_post(user_id: int, title: str, text: str, posts=None) -> Post:
+    """creates new post and saves it"""
+    if not posts:
+        posts = local_posts
+
+    new_post = Post(post_id=len(local_posts), user_id=user_id, title=title, text=text)
+    posts.append(new_post)
+    return new_post

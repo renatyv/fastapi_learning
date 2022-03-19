@@ -16,17 +16,16 @@ users_data = [{"user_id": 0, "name": "Renat", "surname": "Yuldashev"},
 local_users = [User(**user_dict) for user_dict in users_data]
 
 
-def get_all_users(skip: int, limit: int, users=None) -> list[User]:
+def get_all_users(skip: int, limit: int) -> list[User]:
     """return 'limit' number users starting from 'skip'"""
-    if users is None:
-        users = local_users
-    return users[skip:skip + limit]
+    return local_users[skip:skip + limit]
 
 
 def get_user_by_id(user_id: int, users=None) -> Optional[User]:
     """find user by his id"""
-    if users is None:
+    if not users:
         users = local_users
+
     found_users = [user for user in users if user.user_id == user_id]
     if found_users:
         return found_users[0]
@@ -41,7 +40,7 @@ class DuplicateUserCreationException(Exception):
 def create_user(username: str, surname: str, users=None) -> User:
     """adds new user to the database. If pair (name,surname) is already in db, raises exception
     :raises DuplicateUserCreationException"""
-    if users is None:
+    if not users:
         users = local_users
 
     found_user_ids = [user.user_id for user in users if (user.name == username and user.surname == surname)]

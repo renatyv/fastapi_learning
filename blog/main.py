@@ -51,3 +51,17 @@ def get_post(post_id: int = Path(..., ge=0.0)):
     :param post_id path param. post_id >= 0. required.
     """
     return post.get_post_by_post_id(post_id)
+
+
+@app.post("/posts/")
+def create_post(user_id: int = Body(..., ge=0),
+                title: str = Body(..., min_length=1,
+                                     max_length=300),
+                body: str = Body(..., min_length=0,
+                                  max_length=10000)) -> post.Post:
+    """create new post
+    :param user_id: may exist in users. If it does not, no error is returned, post is created"""
+    try:
+        return post.create_post(user_id,title,body)
+    except Exception as e:
+        raise HTTPException(status_code=409, detail=str(e))

@@ -3,10 +3,11 @@ Implements a blog backend API.
 
 Functionality:
 * users
-  * get
+  * read
   * add
 * posts
   * read
+  * add
 
 ## Run in development mode
 ```$ uvicorn blog.main:app --reload```
