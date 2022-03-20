@@ -1,1 +1,0 @@
-uvicorn blog:app --reload

@@ -11,3 +11,5 @@ __pycache__/
 env/webapi.env
 
 env/database.env
+
+yoyo_db_credentials.ini

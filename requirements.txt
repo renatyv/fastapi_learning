@@ -2,3 +2,5 @@ fastapi
 uvicorn[standard]
 pydantic
 pytest
+yoyo-migrations
+psycopg2 # used for yoyo-migrations and postgres
