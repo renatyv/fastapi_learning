@@ -1,0 +1,23 @@
+version: "3.8"
+
+volumes:
+  blog-postgres-volume:
+
+services:
+  web-api:
+    build: .
+    ports:
+#      - host-port:container-port
+      - 8100:8100
+    env_file:
+      - ./env/webapi.env
+#docker run -d --name postgres-server -p 5432:5432 -v postgres-data:/var/lib/postgresql/data -e "POSTGRES_PASSWORD=kamisama123" postgres
+  database:
+    image: postgres:latest
+    ports:
+#      - host-port:container-port
+      - 5432:5432
+    volumes:
+      - blog-postgres-volume:/var/lib/postgresql/data
+    env_file:
+      - ./env/database.env

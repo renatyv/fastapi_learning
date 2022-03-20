@@ -9,20 +9,30 @@ Functionality:
   * read
   * add
 
+Database access is configured through environment:
+
+```env/webapi.env```
+
 ## Run in development mode
 ```$ uvicorn blog.main:app --reload```
 
 Server is loaded at  
 [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
+
+## Database
+*Not used yet*
+* Built using docker, default port 5432
+* Root password is set using environment in env/database.env file
+* Login inside container:
+```$ docker exec -it postgres psql -U postgres```
+* Login locally:
+* ```$ psql -h localhost -U postgres```
+
 ## Docker deployment
-build docker image
+build and run database and web-api images:
 
-```$ docker build -t blog_image .```
-
-run docker image in container
-
-```$ docker run -d --name bloc_container -p 8100:8100 blog_image```
+```$ docker-compose up -d```
 
 Deployed app: [http://127.0.0.1:8100/docs](http://127.0.0.1:8100/docs)
 
@@ -33,5 +43,5 @@ Deployed app: [http://127.0.0.1:8100/docs](http://127.0.0.1:8100/docs)
 * pytest
   
 ## Tests
-only user creation tests are implemented
+user and post creation tests are implemented
 ```$ pytest```
