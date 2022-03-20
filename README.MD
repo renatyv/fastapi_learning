@@ -1,25 +1,17 @@
 # FastAPI blog API
-Project goals:
-* learn technologies:
-  * REST API
-  * Unit testing
-  * Relational database
-  * Database migrations
-  * Docker container creation and use
+Project goals is to learn technologies:
+* REST API
+* Unit testing
+* Relational database
+* Database migrations
+* Docker container creation and use
 
 Implements a blog backend API.
 
 Functionality:
-* users
-  * read
-  * add
-* posts
-  * read
-  * add
+* users: read, create
+* posts: read, create
 
-Database access is configured through environment:
-
-```env/webapi.env```
 ## REST API
 Run web server in development mode
 
@@ -28,26 +20,30 @@ Run web server in development mode
 Server is loaded at  
 [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
+Database access is configured through environment:
+
+```env/webapi.env```
 
 ## Database
 
 * PostgresSQL 14, Built using docker, default port 5432
 * Admin username: **blog_admin**.
 * Root password is set using environment in ```env/database.env``` file (not commited): ```POSTGRES_PASSWORD=password``` 
-<code>[DEFAULT]<br/>
-database = postgresql://blog_admin:jw8s0F4@localhost/blog_db
-</code>
+
 ### yoyo migrations
-SQL migration scripts (DDL) are in ```db_migrations/```
-
-Configuration file: ``yoyo.ini``
-
-Database connection url with password is in ``yoyo_db_credentials.ini``
-
 Basic commands:
 * list migrations ```yoyo list```
 * apply migrations ```yoyo apply```
 * rollback migrations ```yoyo rollback```
+
+SQL migration scripts (DDLs) are in ```db_migrations/```
+
+Configuration file: ``yoyo.ini``
+
+Database connection url with password is in ``yoyo_db_credentials.ini``. File contents:
+
+<code>[DEFAULT]<br/>
+database = postgresql://blog_admin:jw8s0F4@localhost/blog_db</code>
 
 #### Database login
 using **blog_admin** credentials from container
@@ -67,7 +63,10 @@ Database should be pre-configured before starting the app using the following st
 ```create database blog_db;```<br/>
 3. Create role **blog_admin** and with for password  
 ```CREATE ROLE blog_admin WITH LOGIN PASSWORD 'jw8s0F4' CREATEROLE;```
-4. Let **blog_admin** create, update, delete tables   
+4. Put the password into ``yoyo_db_credentials.ini`` :  
+<code>[DEFAULT]<br/>
+database = postgresql://blog_admin:jw8s0F4@localhost/blog_db</code>
+6. Let **blog_admin** create, update, delete tables   
 ```GRANT ALL PRIVILEGES ON DATABASE blog_db TO blog_admin;```
 
 ## Docker deployment
