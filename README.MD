@@ -1,5 +1,5 @@
 # FastAPI blog API
-Project goals is to learn technologies:
+Project goal is to learn technologies:
 * REST API
 * Unit testing
 * Relational database
