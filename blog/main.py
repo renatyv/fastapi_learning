@@ -3,9 +3,13 @@ from typing import Union, Optional
 from fastapi import FastAPI, Query, Path, Body, HTTPException
 from blog.model import user
 from blog.model import post
+from loguru import logger
+import blog.logger_config
 
 app = FastAPI()
 
+# Force uvicorn to emit logs using the same loguru configs
+blog.logger_config.setup_logging()
 
 @app.get("/users")
 def users(skip: int = Query(0, ge=0.0, example=2), limit: int = 10) -> list[user.User]:
@@ -34,6 +38,7 @@ def create_user(username: str = Body(...,min_length=1,
     try:
         return user.create_user(username, surname)
     except user.DuplicateUserCreationException as e:
+        logger.info('Trying to create duplicate user:'+str(e))
         raise HTTPException(status_code=409,
                             detail=str(e))
 
@@ -64,4 +69,5 @@ def create_post(user_id: int = Body(..., ge=0),
     try:
         return post.create_post(user_id,title,body)
     except Exception as e:
+        logger.exception(str(e))
         raise HTTPException(status_code=409, detail=str(e))

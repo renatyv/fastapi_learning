@@ -1,18 +1,35 @@
 # FastAPI blog API
-Project goal is to learn technologies:
+### Goals
+learn technologies:
 * REST API
 * Unit testing
 * Relational database
 * Database migrations
 * Docker container creation and use
 
-Implements a blog backend API.
+### General description
+Blog backend API is implemented. Here one can read, create, update, and delete blog posts and users.
+Each user has
+* user_id
+* name
+* surname
 
-Functionality:
+Each post has:
+* author_id
+* title
+* body (plain text)
+
+Implemented:
 * users: read, create
 * posts: read, create
 
+Not implemented yet:
+* users: update, delete
+* posts: update, delete
+
 ## REST API
+The REST api returns JSON complying to OpenAPI spec.
+
 Run web server in development mode
 
 ```uvicorn blog.main:app --reload```
@@ -40,10 +57,8 @@ SQL migration scripts (DDLs) are in ```db_migrations/```
 
 Configuration file: ``yoyo.ini``
 
-Database connection url with password is in ``yoyo_db_credentials.ini``. File contents:
-
-<code>[DEFAULT]<br/>
-database = postgresql://blog_admin:jw8s0F4@localhost/blog_db</code>
+Username, password and database are configured through ```env/production/webapi.env```, which is not commited.
+File ```env/template/webapi.env``` can be used as a template.
 
 #### Database login
 using **blog_admin** credentials from container
@@ -54,7 +69,7 @@ using **blog_admin** credentials remotely
 
 ``psql -h 127.0.0.1 -p 5432 -U blog_admin -d blog_db``
 
-### Postgres DB initialization:
+#### Postgres DB initialization:
 Database should be pre-configured before starting the app using the following steps
 
 1. Login into docker user superuser **postgres** credentials  
@@ -77,7 +92,8 @@ As a result, application is deployed at [http://127.0.0.1:8100/docs](http://127.
 
 ## Dependencies
 1. Python, see ```requirements.txt```
-2. Postgres SQL, see ```docker-compose.yml```, ```Dockerfile``` 
+2. Postgres SQL, see ```docker-compose.yml```, ```Dockerfile```
+3. Docker
   
 ## Tests
 User and Post creation is tested using pytest.

@@ -1,6 +1,8 @@
-fastapi
-uvicorn[standard]
-pydantic
-pytest
-yoyo-migrations
-psycopg2 # used for yoyo-migrations and postgres
+fastapi == 0.75.0
+uvicorn[standard] == 0.17.6
+pydantic == 1.9.0
+pytest == 7.1.1
+yoyo-migrations == 7.3.2
+psycopg2 == 2.9.3 # used for yoyo-migrations and postgres
+sqlalchemy == 1.4.32
+loguru == 0.6.0
