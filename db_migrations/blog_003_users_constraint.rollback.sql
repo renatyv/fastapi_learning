@@ -1,0 +1,1 @@
+ALTER TABLE blog_user DROP CONSTRAINT unique_name_surname

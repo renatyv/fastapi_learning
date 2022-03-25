@@ -6,8 +6,11 @@ WORKDIR /code
 COPY ./requirements.txt /code/requirements.txt
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
+## run migrations
+#RUN yoyo apply
+
 # copy code
-COPY ./blog /code/blog
+COPY blog /code/blog
 
 # start web api using uvicorn
 CMD ["uvicorn", "blog.main:app", "--host", "0.0.0.0" , "--port", "8100"]

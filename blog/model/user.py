@@ -1,6 +1,12 @@
+import sqlite3
 from typing import Optional
-from pydantic import BaseModel
 
+from sqlalchemy.exc import IntegrityError
+import sqlalchemy.engine
+from pydantic import BaseModel
+from sqlalchemy import text
+from sqlalchemy.engine import Connection
+from loguru import logger
 
 class User(BaseModel):
     user_id: int
@@ -8,45 +14,58 @@ class User(BaseModel):
     surname: str
 
 
-users_data = [{"user_id": 0, "name": "Renat", "surname": "Yuldashev"},
-              {"user_id": 1, "name": "Vlada", "surname": "Yuldasheva"},
-              {"user_id": 2, "name": "Ivan", "surname": "Sudos"}
-              ]
-
-local_users = [User(**user_dict) for user_dict in users_data]
-
-
-def get_all_users(skip: int, limit: int) -> list[User]:
+def get_all_users(db_connection: Connection, skip: int = 0, limit: int = 10**6) -> list[User]:
     """return 'limit' number users starting from 'skip'"""
-    return local_users[skip:skip + limit]
+    users = []
+    with db_connection.begin(): # within transaction
+        rows = db_connection.execute('SELECT user_id, name, surname FROM blog_user').fetchall()
+        for user_id, name, surname in rows:
+            users.append(User(user_id=user_id,name=name,surname=surname))
+    return users[skip:skip + limit]
 
 
-def get_user_by_id(user_id: int, users=None) -> Optional[User]:
+def get_user_by_id(user_id: int, db_connection: Connection) -> Optional[User]:
     """find user by his id"""
-    if not users:
-        users = local_users
-
-    found_users = [user for user in users if user.user_id == user_id]
-    if found_users:
-        return found_users[0]
-    else:
-        return None
+    logger.debug(f'Looking for user {user_id}')
+    with db_connection.begin(): # within transaction
+        try:
+            statement = text("""SELECT user_id, name, surname FROM blog_user WHERE user_id = :user_id""")
+            params = {'user_id': user_id}
+            rows = db_connection.execute(statement,**params).fetchall()
+        except Exception as e:
+            logger.error(e)
+            return None
+        else:
+            logger.debug(f'Query successful, {rows}')
+            for user_id, name, surname in rows:
+                logger.debug(f'{(user_id, name, surname)}')
+                return User(user_id=user_id, name=name, surname=surname)
 
 
 class DuplicateUserCreationException(Exception):
     pass
 
 
-def create_user(username: str, surname: str, users=None) -> User:
+class UnknownException(Exception):
+    pass
+
+
+def create_user(username: str, surname: str, db_connection: Connection) -> User:
     """adds new user to the database. If pair (name,surname) is already in db, raises exception
     :raises DuplicateUserCreationException"""
-    if not users:
-        users = local_users
 
-    found_user_ids = [user.user_id for user in users if (user.name == username and user.surname == surname)]
-    if not found_user_ids:
-        new_user = User(user_id=len(users), name=username, surname=surname)
-        users.append(new_user)
-        return new_user
-    else:
-        raise DuplicateUserCreationException(f'User {username} {surname} already exists with user_id={found_user_ids}')
+    with db_connection.begin():  # within transaction
+        try:
+            statement = text("""INSERT INTO blog_user(name, surname) VALUES (:username, :surname) RETURNING user_id""")
+            params = {'username': username, 'surname': surname}
+            row: sqlalchemy.engine.Row = db_connection.execute(statement,params).fetchone()
+            user_id = row[0]
+        # except (UniqueViolation, sqlite3.IntegrityError) as uve:
+        except IntegrityError as ie:
+            raise DuplicateUserCreationException(str(ie))
+        except Exception as e:
+            logger.error(e)
+            raise UnknownException(e)
+        else:
+            logger.debug(f'user with id {user_id} created')
+            return User(user_id=user_id, name=username, surname=surname)

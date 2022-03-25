@@ -6,3 +6,4 @@ yoyo-migrations == 7.3.2
 psycopg2 == 2.9.3 # used for yoyo-migrations and postgres
 sqlalchemy == 1.4.32
 loguru == 0.6.0
+asyncpg

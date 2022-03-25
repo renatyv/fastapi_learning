@@ -20,8 +20,8 @@ Each post has:
 * body (plain text)
 
 Implemented:
-* users: read, create
-* posts: read, create
+* users: read, create. Postgres is used
+* posts: read, create. Local in-memory data is used
 
 Not implemented yet:
 * users: update, delete
@@ -85,8 +85,15 @@ database = postgresql://blog_admin:jw8s0F4@localhost/blog_db</code>
 ```GRANT ALL PRIVILEGES ON DATABASE blog_db TO blog_admin;```
 
 ## Docker deployment
-Docker-compose is used to build two containers: web api and databas.  
+Docker-compose is used to build two containers: web api and database.
+
+Debug builds:
+
 ```docker-compose up -d```
+
+Production builds:
+
+```docker-compose up -f docker-compose.yml -f docker-compose-prod.yml -d```
 
 As a result, application is deployed at [http://127.0.0.1:8100/docs](http://127.0.0.1:8100/docs)
 
@@ -98,4 +105,5 @@ As a result, application is deployed at [http://127.0.0.1:8100/docs](http://127.
 ## Tests
 User and Post creation is tested using pytest.
 
-Run ```pytest``` in the main directory to start all tests.
+1. run ```./configure_debug.sh``` to export env variables, apply migrations and start docker containers
+2. Run ```pytest``` in the main directory to start all tests.
