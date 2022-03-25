@@ -4,22 +4,6 @@ import sqlalchemy as sqlalchemy
 import blog.model.user as user
 # import os
 
-# psqlengine = sqlalchemy.create_engine(f"postgresql://"
-#                                   f"{os.environ['PSQL_USER']}:"
-#                                   f"{os.environ['PSQL_PASSWORD']}"
-#                                   f"@localhost/{os.environ['PSQL_DB']}")
-
-# backend = get_backend('postgres://myuser@localhost/mydatabase')
-# migrations = read_migrations('path/to/migrations')
-#
-# with backend.lock():
-#
-#     # Apply any outstanding migrations
-#     backend.apply_migrations(backend.to_apply(migrations))
-#
-#     # Rollback all migrations
-#     backend.rollback_migrations(backend.to_rollback(migrations))
-
 @pytest.fixture()
 def empty_inmemory_table_connection():
     # setup inmemory database

@@ -27,19 +27,37 @@ Not implemented yet:
 * users: update, delete
 * posts: update, delete
 
-## REST API
-The REST api returns JSON complying to OpenAPI spec.
+## Start in debug mode
+Use the following script to deplot database + webapi in debug mode: 
 
-Run web server in development mode
+```./start_debug.sh```
 
-```uvicorn blog.main:app --reload```
+Docker-compose can be used to start two containers: web api and database.
 
-Server is loaded at  
-[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+```docker-compose up -f docker-compose.yml -f docker-compose-debug.yml up -d```
 
-Database access is configured through environment:
+The code is mapped to local directory.
+If you change the code, the web server will reload that information on the fly.
+After deployment open [http://127.0.0.1:8100/docs](http://127.0.0.1:8100/docs)
 
-```env/webapi.env```
+## Production deployment
+
+```docker-compose up -f docker-compose.yml -f docker-compose-prod.yml build```
+
+```docker-compose up -f docker-compose.yml -f docker-compose-prod.yml up -d```
+
+As a result, application is deployed at [http://127.0.0.1:8100/docs](http://127.0.0.1:8100/docs)
+
+## Tests
+User and Post creation is tested using pytest.
+
+Run ```pytest``` in the main directory to start all tests.
+
+## Dependencies
+1. Python, see ```requirements.txt```
+2. yoyo migrations
+3. Postgres SQL
+4. Docker
 
 ## Database
 
@@ -84,26 +102,3 @@ database = postgresql://blog_admin:jw8s0F4@localhost/blog_db</code>
 6. Let **blog_admin** create, update, delete tables   
 ```GRANT ALL PRIVILEGES ON DATABASE blog_db TO blog_admin;```
 
-## Docker deployment
-Docker-compose is used to build two containers: web api and database.
-
-Debug builds:
-
-```docker-compose up -d```
-
-Production builds:
-
-```docker-compose up -f docker-compose.yml -f docker-compose-prod.yml -d```
-
-As a result, application is deployed at [http://127.0.0.1:8100/docs](http://127.0.0.1:8100/docs)
-
-## Dependencies
-1. Python, see ```requirements.txt```
-2. Postgres SQL, see ```docker-compose.yml```, ```Dockerfile```
-3. Docker
-  
-## Tests
-User and Post creation is tested using pytest.
-
-1. run ```./configure_debug.sh``` to export env variables, apply migrations and start docker containers
-2. Run ```pytest``` in the main directory to start all tests.
