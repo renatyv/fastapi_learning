@@ -57,20 +57,22 @@ def create_user(username: str = Body(...,min_length=1,
 
 
 @app.get("/posts", status_code=HttpStatusCode.OK.value, response_model=list[post.Post])
-def posts():
+def posts(db_connection: Connection = Depends(database.get_database_connection)):
     """get all posts"""
-    return post.get_all_posts()
+    return post.get_all_posts(db_connection)
 
 
 @app.get("/posts/{post_id}", status_code=HttpStatusCode.FOUND.value, response_model=post.Post)
-def get_post(post_id: int = Path(..., ge=0.0)):
+def get_post(post_id: int = Path(..., ge=0.0),
+             db_connection: Connection = Depends(database.get_database_connection)):
     """get specific post
     :param post_id path param. post_id >= 0. required.
     """
-    if post:
-        post.get_post_by_post_id(post_id)
+    found_post = post.get_post_by_post_id(post_id,db_connection)
+    if found_post:
+        return found_post
     else:
-        raise HTTPException(status_code=HttpStatusCode.NOT_FOUND)
+        raise HTTPException(status_code=HttpStatusCode.NOT_FOUND.value)
 
 
 @app.post("/posts/", status_code=HttpStatusCode.CREATED.value, response_model=post.Post)
@@ -78,11 +80,15 @@ def create_post(user_id: int = Body(..., ge=0),
                 title: str = Body(..., min_length=1,
                                      max_length=300),
                 body: str = Body(..., min_length=0,
-                                  max_length=10000)) -> post.Post:
+                                  max_length=10000),
+                db_connection: Connection = Depends(database.get_database_connection)) -> post.Post:
     """create new post
     :param user_id: may exist in users. If it does not, no error is returned, post is created"""
     try:
-        return post.create_post(user_id, title, body)
+        return post.create_post(user_id, title, body, db_connection)
+    except post.NoSuchUserid as e:
+        logger.debug(str(e))
+        raise HTTPException(status_code=HttpStatusCode.NOT_ACCEPTABLE.value, detail='No user with such user_id')
     except Exception as e:
-        logger.exception(str(e))
-        raise HTTPException(status_code=HttpStatusCode.CONFLICT.value, detail=str(e))
+        logger.error(str(e))
+        raise HTTPException(status_code=HttpStatusCode.CONFLICT.value, detail='Unknown error')

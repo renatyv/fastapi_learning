@@ -60,7 +60,7 @@ def create_user(username: str, surname: str, db_connection: Connection) -> User:
             params = {'username': username, 'surname': surname}
             row: sqlalchemy.engine.Row = db_connection.execute(statement,params).fetchone()
             user_id = row[0]
-        # except (UniqueViolation, sqlite3.IntegrityError) as uve:
+        # except (UniqueViolation, .IntegrityError) as uve:
         except IntegrityError as ie:
             raise DuplicateUserCreationException(str(ie))
         except Exception as e:

@@ -21,7 +21,7 @@ Each post has:
 
 Implemented:
 * users: read, create. Postgres is used
-* posts: read, create. Local in-memory data is used
+* posts: read, create. Postgres is used
 
 Not implemented yet:
 * users: update, delete
@@ -32,7 +32,11 @@ Use the following script to deplot database + webapi in debug mode:
 
 ```./start_debug.sh```
 
-Docker-compose can be used to start two containers: web api and database.
+Dismantle containers:
+
+```./start_debug.sh```
+
+Start web api and database container manually:
 
 ```docker-compose up -f docker-compose.yml -f docker-compose-debug.yml up -d```
 

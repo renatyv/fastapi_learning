@@ -1,13 +1,49 @@
+import pytest
+import sqlalchemy
+
 from blog.model import post
 
 
-def test_get_post_by_post_id():
-    posts = [post.Post(post_id=0, user_id=0, title='Life is beautiful', text='Librum epsum')]
-    first_post = post.get_post_by_post_id(0, posts)
-    assert posts[0] == first_post
+@pytest.fixture()
+def empty_inmemory_table_connection():
+    # setup inmemory database
+    sqlite_engine = sqlalchemy.create_engine('sqlite://')
+    connection = sqlite_engine.connect()
+    connection.execute("""
+    CREATE TABLE blog_post(
+        post_id INTEGER NOT NULL PRIMARY KEY,
+        user_id INTEGER,
+        title VARCHAR(200),
+        body VARCHAR(100000));""")
+    yield connection
+    # teardown
+    connection.close()
 
 
-def test_create_new_post():
-    posts = [post.Post(post_id=0, user_id=0, title='Life is beautiful', text='Librum epsum')]
-    new_post = post.create_post(user_id=1, title='Life is going well', text='For me', posts=posts)
-    assert posts[1] == new_post
+@pytest.fixture()
+def three_posts_inmemory_table_connection(empty_inmemory_table_connection):
+    # setup
+    filled_table_conn = empty_inmemory_table_connection
+    filled_table_conn.execute("""
+    INSERT INTO blog_post(post_id, user_id, title, body)
+        VALUES (1, 1, 'Migrations with yoyo', 'Actually work'),
+               (2, 2, 'Order #1', 'Invade ukraine!'),
+               (3, 2, 'Order #2', 'Wtf is going on');""")
+    return filled_table_conn
+
+
+def test_get_all_posts(three_posts_inmemory_table_connection):
+    posts = post.get_all_posts(three_posts_inmemory_table_connection)
+    assert len(posts) == 3
+    assert posts[2].user_id == 2 and posts[2].title == 'Order #2'
+
+
+def test_get_post_by_post_id(three_posts_inmemory_table_connection):
+    first_post = post.get_post_by_post_id(1, three_posts_inmemory_table_connection)
+    assert first_post.post_id == 1 and first_post.user_id == 1 and first_post.title == 'Migrations with yoyo'
+
+
+def test_create_new_post(empty_inmemory_table_connection):
+    new_post = post.create_post(user_id=1, title='Life is going well', body='For me', db_connection=empty_inmemory_table_connection)
+    assert new_post.post_id == 1
+
