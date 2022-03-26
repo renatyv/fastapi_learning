@@ -15,6 +15,7 @@ app = FastAPI()
 # Force uvicorn to emit logs using the same loguru configs
 blog.logger_config.setup_logging()
 
+
 @app.get("/users", status_code=HttpStatusCode.OK.value, response_model=list[user.User])
 def users(skip: int = Query(0, ge=0.0, example=2),
           limit: int = 10,
