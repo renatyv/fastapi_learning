@@ -57,9 +57,11 @@ def create_user(username: str = Body(...,min_length=1,
 
 
 @app.get("/posts", status_code=HttpStatusCode.OK.value, response_model=list[post.Post])
-def posts(db_connection: Connection = Depends(database.get_database_connection)):
+def posts(skip: int = Query(0, ge=0.0, example=2),
+          limit: int = 10,
+          db_connection: Connection = Depends(database.get_database_connection)):
     """get all posts"""
-    return post.get_all_posts(db_connection)
+    return post.get_all_posts(db_connection, skip=skip, limit=limit)
 
 
 @app.get("/posts/{post_id}", status_code=HttpStatusCode.FOUND.value, response_model=post.Post)

@@ -19,10 +19,12 @@ def get_all_users(db_connection: Connection, skip: int = 0, limit: int = 10**6) 
     """return 'limit' number users starting from 'skip'"""
     users = []
     with db_connection.begin(): # within transaction
-        rows = db_connection.execute('SELECT user_id, name, surname FROM blog_user').fetchall()
+        statement = text('SELECT user_id, name, surname FROM blog_user LIMIT :limit OFFSET :skip')
+        params = {'skip': skip, 'limit': limit}
+        rows = db_connection.execute(statement,**params).fetchall()
         for user_id, name, surname in rows:
             users.append(User(user_id=user_id,name=name,surname=surname))
-    return users[skip:skip + limit]
+    return users
 
 
 def get_user_by_id(user_id: int, db_connection: Connection) -> Optional[User]:

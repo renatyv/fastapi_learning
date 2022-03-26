@@ -20,10 +20,15 @@ def get_all_posts(db_connection: Connection, skip: int = 0, limit: int = 10**6) 
     """Returns all posts from database. params skip and limit work the same way as for lists"""
     posts = []
     with db_connection.begin():  # within transaction
-        rows = db_connection.execute('SELECT post_id, user_id, title, body FROM blog_post').fetchall()
+        statement = text("""SELECT
+                                post_id, user_id, title, body
+                            FROM blog_post
+                            LIMIT :limit OFFSET :skip""")
+        params = {'skip': skip, 'limit': limit}
+        rows = db_connection.execute(statement,**params).fetchall()
         for post_id, user_id, title, body in rows:
             posts.append(Post(user_id=user_id, post_id=post_id, title=title, body=body))
-    return posts[skip:skip + limit]
+    return posts
 
 
 def get_post_by_post_id(post_id: int, db_connection: Connection) -> Optional[Post]:
