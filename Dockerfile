@@ -1,13 +1,18 @@
-FROM python:3.9
+FROM python:3-alpine
 
 WORKDIR /code
 
 # install python requirements
 COPY ./requirements.txt /code/requirements.txt
-RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
-## run migrations
-#RUN yoyo apply
+# install python requirements
+# --virtual: install packages, those packages are not added to global packages. And this change can be easily reverted.
+# saves about ~610Mb of images size
+RUN \
+ apk add --no-cache postgresql-libs && \
+ apk add --no-cache --virtual .build-deps build-base postgresql-dev python3-dev && \
+ pip install --no-cache-dir --upgrade -r /code/requirements.txt && \
+ apk --purge del .build-deps
 
 # copy code
 COPY blog /code/blog
