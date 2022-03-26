@@ -86,7 +86,7 @@ def create_post(user_id: int = Body(..., ge=0),
     :param user_id: may exist in users. If it does not, no error is returned, post is created"""
     try:
         return post.create_post(user_id, title, body, db_connection)
-    except post.NoSuchUserid as e:
+    except post.NoSuchUseridException as e:
         logger.debug(str(e))
         raise HTTPException(status_code=HttpStatusCode.NOT_ACCEPTABLE.value, detail='No user with such user_id')
     except Exception as e:

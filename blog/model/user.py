@@ -8,6 +8,7 @@ from sqlalchemy import text
 from sqlalchemy.engine import Connection
 from loguru import logger
 
+
 class User(BaseModel):
     user_id: int
     name: str
@@ -52,15 +53,14 @@ class UnknownException(Exception):
 
 def create_user(username: str, surname: str, db_connection: Connection) -> User:
     """adds new user to the database. If pair (name,surname) is already in db, raises exception
-    :raises DuplicateUserCreationException"""
-
+    :raises DuplicateUserCreationException if user with such name and surname exists already
+    :raises UnknownException if smth went wrong while creating the user"""
     with db_connection.begin():  # within transaction
         try:
             statement = text("""INSERT INTO blog_user(name, surname) VALUES (:username, :surname) RETURNING user_id""")
             params = {'username': username, 'surname': surname}
             row: sqlalchemy.engine.Row = db_connection.execute(statement,params).fetchone()
             user_id = row[0]
-        # except (UniqueViolation, .IntegrityError) as uve:
         except IntegrityError as ie:
             raise DuplicateUserCreationException(str(ie))
         except Exception as e:

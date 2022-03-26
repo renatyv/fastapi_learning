@@ -17,6 +17,7 @@ class Post(BaseModel):
 
 
 def get_all_posts(db_connection: Connection, skip: int = 0, limit: int = 10**6) -> list[Post]:
+    """Returns all posts from database. params skip and limit work the same way as for lists"""
     posts = []
     with db_connection.begin():  # within transaction
         rows = db_connection.execute('SELECT post_id, user_id, title, body FROM blog_post').fetchall()
@@ -46,12 +47,13 @@ class UnknownException(Exception):
     pass
 
 
-class NoSuchUserid(Exception):
+class NoSuchUseridException(Exception):
     pass
 
 
 def create_post(user_id: int, title: str, body: str, db_connection: Connection) -> Post:
-    """creates new post and saves it"""
+    """creates new post and saves it
+    :raises NoSuchUseridException if user_id is not found in system"""
     with db_connection.begin():  # within transaction
         try:
             statement = text("""INSERT INTO blog_post(user_id, title, body) VALUES (:user_id, :title, :body) RETURNING post_id""")
@@ -61,7 +63,7 @@ def create_post(user_id: int, title: str, body: str, db_connection: Connection) 
         # except (UniqueViolation, sqlite3.IntegrityError) as uve:
         except IntegrityError as ie:
             logger.debug(f'No user with id={user_id} '+str(ie))
-            raise NoSuchUserid()
+            raise NoSuchUseridException()
         else:
             logger.debug(f'post with id {(post_id,user_id,title,body)} created')
             return Post(post_id=post_id, user_id=user_id, title=title, body=body)
