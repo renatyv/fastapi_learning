@@ -29,7 +29,6 @@ def get_all_users(db_connection: Connection, skip: int = 0, limit: int = 10**6) 
 
 def get_user_by_id(user_id: int, db_connection: Connection) -> Optional[User]:
     """find user by his id"""
-    logger.debug(f'Looking for user {user_id}')
     with db_connection.begin(): # within transaction
         try:
             statement = text("""SELECT user_id, name, surname FROM blog_user WHERE user_id = :user_id""")
@@ -39,9 +38,7 @@ def get_user_by_id(user_id: int, db_connection: Connection) -> Optional[User]:
             logger.error(e)
             return None
         else:
-            logger.debug(f'Query successful, {rows}')
             for user_id, name, surname in rows:
-                logger.debug(f'{(user_id, name, surname)}')
                 return User(user_id=user_id, name=name, surname=surname)
 
 
@@ -69,5 +66,46 @@ def create_user(username: str, surname: str, db_connection: Connection) -> User:
             logger.error(e)
             raise UnknownException(e)
         else:
-            logger.debug(f'user with id {user_id} created')
             return User(user_id=user_id, name=username, surname=surname)
+
+
+class UserNotFoundException(Exception):
+    pass
+
+
+def update_user(user_id: int, name: Optional[str], surname: Optional[str], db_connection: Connection) -> User:
+    """updates name or surname for a user in db.
+    :returns User object if update was successful
+    :raises UserNotFoundException if user_id is invalied"""
+    with db_connection.begin(): # start transaction
+        try:
+            if name and surname:
+                statement = text("""UPDATE blog_user 
+                                    SET name = :name, surname = :surname 
+                                    WHERE user_id = :user_id
+                                    RETURNING name, surname """)
+            elif not name and surname:
+                statement = text("""UPDATE blog_user 
+                                    SET surname = :surname 
+                                    WHERE user_id = :user_id
+                                    RETURNING name, surname """)
+            elif name and not surname:
+                statement = text("""UPDATE blog_user 
+                                    SET name = :name 
+                                    WHERE user_id = :user_id
+                                    RETURNING name, surname """)
+            else:
+                statement = text("""SELECT name, surname 
+                                    FROM blog_user 
+                                    WHERE user_id = :user_id""")
+            params = {'name': name, 'surname': surname, 'user_id': user_id}
+            row = db_connection.execute(statement, params).fetchone()
+        except Exception as e:
+            logger.error('unknown error: {e}')
+            raise UnknownException
+        else:
+            if row is None:
+                raise UserNotFoundException()
+            else:
+                updated_name, updated_surname = row
+                return User(user_id=user_id, name=updated_name, surname=updated_surname)

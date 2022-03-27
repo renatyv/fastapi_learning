@@ -16,11 +16,11 @@ Each user has user_id, name, and surname.
 Each post has author_id, title, and body (plain text).
 
 Implemented:
-* users: read, create.
+* users: read, create, update.
 * posts: read, create.
 
 Not implemented yet:
-* users: update, delete
+* users: delete
 * posts: update, delete
 
 ## Start in debug mode

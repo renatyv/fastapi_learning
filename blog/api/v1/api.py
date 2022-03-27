@@ -53,6 +53,24 @@ def create_user(username: str = Body(..., # required, no default value. = None t
                             detail=str(e))
 
 
+@api_router.put("/users/{user_id}", status_code=HttpStatusCode.OK.value, response_model=user.User)
+def update_user_info(user_id: int,
+                     name: Optional[str] = Body(None,  # not required
+                                              min_length=1,
+                                              max_length=10,
+                                              regex='\w'),
+                     surname: Optional[str] = Body(None, # optional
+                                             min_length=1,
+                                             max_length=10,
+                                             regex='\w'),
+                     db_connection: Connection = Depends(database.get_database_connection)):
+    try:
+        return user.update_user(user_id, name, surname, db_connection)
+    except user.UserNotFoundException as e:
+        logger.info(f'Trying to update non-existent user with user_id={user_id}:'+str(e))
+        raise HTTPException(status_code=HttpStatusCode.NOT_FOUND.value,
+                            detail=f'user with user_id={user_id} not found')
+
 
 @api_router.get("/posts", status_code=HttpStatusCode.OK.value, response_model=list[post.Post])
 def posts(skip: int = Query(0, ge=0.0, example=2),
