@@ -17,11 +17,11 @@ Each post has author_id, title, and body (plain text).
 
 Implemented:
 * users: read, create, update.
-* posts: read, create.
+* posts: read, create, update.
 
 Not implemented yet:
 * users: delete
-* posts: update, delete
+* posts: delete
 
 ## Start in debug mode
 Use the following script to deploy database and web server in two separate containers in debug mode: 

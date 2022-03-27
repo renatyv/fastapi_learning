@@ -31,7 +31,7 @@ def get_all_posts(db_connection: Connection, skip: int = 0, limit: int = 10**6) 
     return posts
 
 
-def get_post_by_post_id(post_id: int, db_connection: Connection) -> Optional[Post]:
+def get_post_by_id(post_id: int, db_connection: Connection) -> Optional[Post]:
     """filter posts by post_id"""
     logger.debug(f'Looking for post {post_id}')
     with db_connection.begin():  # within transaction
@@ -72,3 +72,46 @@ def create_post(user_id: int, title: str, body: str, db_connection: Connection) 
         else:
             logger.debug(f'post with id {(post_id,user_id,title,body)} created')
             return Post(post_id=post_id, user_id=user_id, title=title, body=body)
+
+
+class PostNotFoundException(Exception):
+    pass
+
+
+def update_post(post_id: int, title: Optional[str], body: Optional[str], db_connection: Connection) -> Post:
+    """updates title or body for the post in db.
+    title and body are optional. If they are not set, title and body are not updated
+    :returns User object if update was successful
+    :raises PostNotFoundException if user_id is invalied"""
+    with db_connection.begin(): # start transaction
+        try:
+            if title and body:
+                statement = text("""UPDATE blog_post 
+                                    SET title = :title, body = :body 
+                                    WHERE post_id = :post_id
+                                    RETURNING user_id, title, body """)
+            elif body and not title:
+                statement = text("""UPDATE blog_post 
+                                    SET body = :body 
+                                    WHERE post_id = :post_id
+                                    RETURNING user_id, title, body """)
+            elif title and not body:
+                statement = text("""UPDATE blog_post 
+                                    SET title = :title 
+                                    WHERE post_id = :post_id
+                                    RETURNING user_id, title, body """)
+            else:
+                statement = text("""SELECT user_id, title, body 
+                                    FROM blog_post 
+                                    WHERE post_id = :post_id""")
+            params = {'title': title, 'body': body, 'post_id': post_id}
+            row = db_connection.execute(statement, params).fetchone()
+        except Exception as e:
+            logger.error('unknown error: {e}')
+            raise UnknownException
+        else:
+            if row is None:
+                raise PostNotFoundException()
+            else:
+                user_id, title, body = row
+                return Post(post_id=post_id, user_id=user_id, title=title, body=body)

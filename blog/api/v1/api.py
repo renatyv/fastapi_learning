@@ -86,7 +86,7 @@ def get_post(post_id: int = Path(..., ge=0.0),  # required, no default value. = 
     """get specific post
     :param post_id path param. post_id >= 0. required.
     """
-    found_post = post.get_post_by_post_id(post_id,db_connection)
+    found_post = post.get_post_by_id(post_id, db_connection)
     if found_post:
         return found_post
     else:
@@ -110,3 +110,18 @@ def create_post(user_id: int = Body(..., ge=0),  # required, no default value. =
     except Exception as e:
         logger.error(str(e))
         raise HTTPException(status_code=HttpStatusCode.CONFLICT.value, detail='Unknown error')
+
+
+@api_router.put("/posts/{post_id}", status_code=HttpStatusCode.OK.value, response_model=post.Post)
+def update_post_info(post_id: int,
+                     title: str = Body(None, min_length=1, # ... means field is optional
+                                       max_length=300),
+                     body: str = Body(None, min_length=0, # ... means field is optional
+                                      max_length=10000),
+                     db_connection: Connection = Depends(database.get_database_connection)):
+    try:
+        return post.update_post(post_id, title, body, db_connection)
+    except post.PostNotFoundException as e:
+        logger.info(f'Trying to update non-existent post with post_id={post_id}:' + str(e))
+        raise HTTPException(status_code=HttpStatusCode.NOT_FOUND.value,
+                            detail=f'Post with post_id={post_id} not found')

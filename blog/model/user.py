@@ -75,6 +75,7 @@ class UserNotFoundException(Exception):
 
 def update_user(user_id: int, name: Optional[str], surname: Optional[str], db_connection: Connection) -> User:
     """updates name or surname for a user in db.
+    name and surname are optional. If they are not set, name and surname are not updated
     :returns User object if update was successful
     :raises UserNotFoundException if user_id is invalied"""
     with db_connection.begin(): # start transaction
