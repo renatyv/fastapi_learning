@@ -81,8 +81,8 @@ class PostNotFoundException(Exception):
 def update_post(post_id: int, title: Optional[str], body: Optional[str], db_connection: Connection) -> Post:
     """updates title or body for the post in db.
     title and body are optional. If they are not set, title and body are not updated
-    :returns User object if update was successful
-    :raises PostNotFoundException if user_id is invalied"""
+    :returns Post object if update was successful
+    :raises PostNotFoundException if post_id is invalied"""
     with db_connection.begin(): # start transaction
         try:
             if title and body:

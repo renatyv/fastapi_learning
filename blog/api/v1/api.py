@@ -44,7 +44,8 @@ def create_user(username: str = Body(..., # required, no default value. = None t
                 surname: str = Body(..., min_length=1,
                                      max_length=10,
                                      regex='\w'),
-                db_connection: Connection = Depends(database.get_database_connection)):
+                db_connection: Connection = Depends(database.get_database_connection)) -> user.User:
+    """creates a new user, returning it as a result"""
     try:
         return user.create_user(username, surname,db_connection)
     except user.DuplicateUserCreationException as e:
@@ -63,7 +64,8 @@ def update_user_info(user_id: int,
                                              min_length=1,
                                              max_length=10,
                                              regex='\w'),
-                     db_connection: Connection = Depends(database.get_database_connection)):
+                     db_connection: Connection = Depends(database.get_database_connection)) -> user.User:
+    """Update name or surname for specific user"""
     try:
         return user.update_user(user_id, name, surname, db_connection)
     except user.UserNotFoundException as e:
@@ -75,7 +77,7 @@ def update_user_info(user_id: int,
 @api_router.get("/posts", status_code=HttpStatusCode.OK.value, response_model=list[post.Post])
 def posts(skip: int = Query(0, ge=0.0, example=2),
           limit: int = 10,
-          db_connection: Connection = Depends(database.get_database_connection)):
+          db_connection: Connection = Depends(database.get_database_connection)) -> list[post.Post]:
     """get all posts"""
     return post.get_all_posts(db_connection, skip=skip, limit=limit)
 
@@ -119,6 +121,7 @@ def update_post_info(post_id: int,
                      body: str = Body(None, min_length=0, # ... means field is optional
                                       max_length=10000),
                      db_connection: Connection = Depends(database.get_database_connection)):
+    """Update title or body for specific post"""
     try:
         return post.update_post(post_id, title, body, db_connection)
     except post.PostNotFoundException as e:
