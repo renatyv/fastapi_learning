@@ -123,8 +123,6 @@ def delete_user(user_id: int, db_connection: Connection):
             params = {'user_id': user_id}
             result: LegacyCursorResult = db_connection.execute(statement, params)
             deleted_rows = result.rowcount
-        except IntegrityError as ie:
-            raise DuplicateUserCreationException(str(ie))
         except Exception as e:
             logger.error(e)
             raise UnknownException(e)

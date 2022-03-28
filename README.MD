@@ -20,7 +20,7 @@ Implemented:
 * posts: read, create, update.
 
 Not implemented yet:
-* posts: delete
+* Authentication & authorization
 
 ## Start in debug mode
 Use the following script to deploy database and web server in two separate containers in debug mode: 

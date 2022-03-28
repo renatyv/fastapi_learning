@@ -140,3 +140,15 @@ def update_post_info(post_id: int,
         logger.info(f'Trying to update non-existent post with post_id={post_id}:' + str(e))
         raise HTTPException(status_code=HttpStatusCode.NOT_FOUND.value,
                             detail=f'Post with post_id={post_id} not found')
+
+
+@api_router.delete("/posts/{post_id}", status_code=HttpStatusCode.OK.value)
+def delete_post(post_id: int,
+                db_connection: Connection = Depends(database.get_database_connection)):
+    """Delete user by id.
+    :raises HTTPException if user is not found, nothing is deleted"""
+    try:
+        post.delete_post(post_id, db_connection)
+    except post.PostNotFoundException as e:
+        raise HTTPException(status_code=HttpStatusCode.NOT_FOUND.value,
+                            detail=f'post with post_id={post_id} not found')

@@ -57,3 +57,14 @@ def test_update_user(three_posts_inmemory_table_connection):
     updated_post = post.update_post(1, 'Updated_title', 'Updated_body', three_posts_inmemory_table_connection)
     actual_post = post.get_post_by_id(1, three_posts_inmemory_table_connection)
     assert updated_post == actual_post
+
+
+def test_delete_inexistent_post(empty_inmemory_table_connection):
+    """delete post by id"""
+    with pytest.raises(post.PostNotFoundException):
+        post.delete_post(0, empty_inmemory_table_connection)
+
+
+def test_delete_user(three_posts_inmemory_table_connection):
+    post.delete_post(1, three_posts_inmemory_table_connection)
+    assert post.get_post_by_id(1,three_posts_inmemory_table_connection) is None

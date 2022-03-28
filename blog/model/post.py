@@ -5,6 +5,7 @@ from loguru import logger
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.dialects.postgresql import psycopg2
+from sqlalchemy.engine import LegacyCursorResult
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.future import Connection
 
@@ -115,3 +116,22 @@ def update_post(post_id: int, title: Optional[str], body: Optional[str], db_conn
             else:
                 user_id, title, body = row
                 return Post(post_id=post_id, user_id=user_id, title=title, body=body)
+
+
+def delete_post(post_id: int, db_connection: Connection):
+    """Delete post by post_id. Note, that all post posts will be deleted with CASCADE,
+    :raises PostNotFoundException if nothing is deleted from database"""
+    with db_connection.begin():  # within transaction
+        try:
+            statement = text("""DELETE FROM blog_post WHERE post_id = :post_id""")
+            params = {'post_id': post_id}
+            result: LegacyCursorResult = db_connection.execute(statement, params)
+            deleted_rows = result.rowcount
+        except Exception as e:
+            logger.error(e)
+            raise UnknownException(e)
+        else:
+            if deleted_rows == 0:
+                raise PostNotFoundException()
+            if deleted_rows > 1:
+                logger.error(f'Many posts with post_id={post_id} were deleted')
