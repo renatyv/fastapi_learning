@@ -56,7 +56,6 @@ def test_create_new_user(empty_inmemory_table_connection):
 
 
 def test_create_dublicate_user(empty_inmemory_table_connection):
-    # user.User(user_id=0, name='renat', surname='iuldashev')
     with pytest.raises(user.DuplicateUserCreationException):
         user.create_user("Renat", "Yuldashev", empty_inmemory_table_connection)
         assert user.create_user("Renat", "Yuldashev", empty_inmemory_table_connection)
@@ -72,3 +71,13 @@ def test_update_user(three_users_inmemory_table_connection):
     actual_user = user.get_user_by_id(1, three_users_inmemory_table_connection)
     assert updated_user == actual_user
 
+
+def test_delete_inexistent_user(empty_inmemory_table_connection):
+    """delete user by id"""
+    with pytest.raises(user.UserNotFoundException):
+        user.delete_user(0,empty_inmemory_table_connection)
+
+
+def test_delete_user(three_users_inmemory_table_connection):
+    deleted_user = user.delete_user(1, three_users_inmemory_table_connection)
+    assert user.get_user_by_id(1,three_users_inmemory_table_connection) is None

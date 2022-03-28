@@ -74,6 +74,18 @@ def update_user_info(user_id: int,
                             detail=f'user with user_id={user_id} not found')
 
 
+@api_router.delete("/users/{user_id}", status_code=HttpStatusCode.OK.value)
+def delete_user(user_id: int,
+                db_connection: Connection = Depends(database.get_database_connection)):
+    """Delete user by id.
+    :raises HTTPException if user is not found, nothing is deleted"""
+    try:
+        user.delete_user(user_id, db_connection)
+    except user.UserNotFoundException as e:
+        raise HTTPException(status_code=HttpStatusCode.NOT_FOUND.value,
+                            detail=f'user with user_id={user_id} not found')
+
+
 @api_router.get("/posts", status_code=HttpStatusCode.OK.value, response_model=list[post.Post])
 def posts(skip: int = Query(0, ge=0.0, example=2),
           limit: int = 10,

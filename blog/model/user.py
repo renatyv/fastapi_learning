@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 import sqlalchemy.engine
 from pydantic import BaseModel
 from sqlalchemy import text
-from sqlalchemy.engine import Connection
+from sqlalchemy.engine import Connection, LegacyCursorResult
 from loguru import logger
 
 
@@ -28,7 +28,9 @@ def get_all_users(db_connection: Connection, skip: int = 0, limit: int = 10**6) 
 
 
 def get_user_by_id(user_id: int, db_connection: Connection) -> Optional[User]:
-    """find user by his id"""
+    """find user by his id
+    :returns User object, if user is found in database
+    :returns None if user is not found"""
     with db_connection.begin(): # within transaction
         try:
             statement = text("""SELECT user_id, name, surname FROM blog_user WHERE user_id = :user_id""")
@@ -110,3 +112,24 @@ def update_user(user_id: int, name: Optional[str], surname: Optional[str], db_co
             else:
                 updated_name, updated_surname = row
                 return User(user_id=user_id, name=updated_name, surname=updated_surname)
+
+
+def delete_user(user_id: int, db_connection: Connection):
+    """Delete user by user_id. Note, that all user posts will be deleted with CASCADE,
+    :raises UserNotFoundException if nothing is deleted from database"""
+    with db_connection.begin():  # within transaction
+        try:
+            statement = text("""DELETE FROM blog_user WHERE user_id = :user_id""")
+            params = {'user_id': user_id}
+            result: LegacyCursorResult = db_connection.execute(statement, params)
+            deleted_rows = result.rowcount
+        except IntegrityError as ie:
+            raise DuplicateUserCreationException(str(ie))
+        except Exception as e:
+            logger.error(e)
+            raise UnknownException(e)
+        else:
+            if deleted_rows == 0:
+                raise UserNotFoundException()
+            if deleted_rows > 1:
+                logger.error(f'Many users with user_id={user_id} were deleted')

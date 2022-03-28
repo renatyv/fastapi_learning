@@ -16,11 +16,10 @@ Each user has user_id, name, and surname.
 Each post has author_id, title, and body (plain text).
 
 Implemented:
-* users: read, create, update.
+* users: read, create, update, delete.
 * posts: read, create, update.
 
 Not implemented yet:
-* users: delete
 * posts: delete
 
 ## Start in debug mode
@@ -72,10 +71,15 @@ See template with all necessary env variables in ```env/template/database.env```
 ### yoyo migrations
 Before running migrations, you should provide username, password and database names through environment variables, see template at ```env/template/webapi.env```.
 
+set environment:
+
+```export $(cat env/debug/webapi.env | xargs)```
+
 Basic commands:
 * list migrations ```yoyo list```
 * apply migrations ```yoyo apply```
-* rollback migrations ```yoyo rollback```
+* rollback last migration ```yoyo rollback```
+* rollback all migrations ```yoyo rollback --all```
 
 SQL migration scripts (DDLs) are in ```db_migrations/```
 
