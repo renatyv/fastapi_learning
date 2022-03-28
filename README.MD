@@ -16,11 +16,8 @@ Each user has user_id, name, and surname.
 Each post has author_id, title, and body (plain text).
 
 Implemented:
-* users: read, create, update, delete.
-* posts: read, create, update.
-
-Not implemented yet:
-* Authentication & authorization
+* users: read, create, update, delete
+* posts: read, create, update, delete
 
 ## Start in debug mode
 Use the following script to deploy database and web server in two separate containers in debug mode: 
