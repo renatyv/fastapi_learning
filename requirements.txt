@@ -7,3 +7,4 @@ psycopg2 # used for yoyo-migrations and postgres
 sqlalchemy
 loguru
 asyncpg
+requests

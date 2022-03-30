@@ -13,9 +13,9 @@ api_router = APIRouter()
 
 
 @api_router.get("/users", status_code=HttpStatusCode.OK.value, response_model=list[user.User])
-def users(skip: int = Query(0, ge=0.0, example=2),
-          limit: int = 10,
-          db_connection: Connection = Depends(database.get_database_connection)) -> Any:
+def get_all_users(skip: int = Query(0, ge=0.0, example=2),
+                  limit: int = 10,
+                  db_connection: Connection = Depends(database.get_database_connection)) -> Any:
     """get all users
     :param skip. skip >= 0. optional
     :param limit. default 10. optional
@@ -87,9 +87,9 @@ def delete_user(user_id: int,
 
 
 @api_router.get("/posts", status_code=HttpStatusCode.OK.value, response_model=list[post.Post])
-def posts(skip: int = Query(0, ge=0.0, example=2),
-          limit: int = 10,
-          db_connection: Connection = Depends(database.get_database_connection)) -> list[post.Post]:
+def get_all_posts(skip: int = Query(0, ge=0.0, example=2),
+                  limit: int = 10,
+                  db_connection: Connection = Depends(database.get_database_connection)) -> list[post.Post]:
     """get all posts"""
     return post.get_all_posts(db_connection, skip=skip, limit=limit)
 

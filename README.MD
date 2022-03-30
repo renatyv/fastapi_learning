@@ -50,7 +50,17 @@ As a result, application is deployed at [http://127.0.0.1:8100/docs](http://127.
 ## Tests
 User and Post read/create is tested using pytest.
 
-Run ```pytest``` in the main directory to start all tests.
+Run unit tests:
+
+```python3 -m pytest --no-header --tb=no tests_unit/```
+
+Run api (integration) tests:
+
+```python3 -m pytest --no-header --tb=no tests_api/```
+
+Comments:
+* ```python3 -m``` is used instead of 'pytest tests_unit/' to include source directory into python path
+* ```--tb=no```  (to traceback) allows to hide long stack traces if exception raised when running test
 
 ## Dependencies
 1. Python, see ```requirements.txt```

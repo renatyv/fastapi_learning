@@ -1,7 +1,10 @@
 ## TODO
+1. Test API directly using requests package.
 ### Implement Authentication & authorization using JWT.
-Probably using the
-[tutorial](https://christophergs.com/tutorials/ultimate-fastapi-tutorial-pt-10-auth-jwt/)
+Using the
+[official tutotial](https://fastapi.tiangolo.com/tutorial/security/)
+or
+[tutorial from christophergs.com](https://christophergs.com/tutorials/ultimate-fastapi-tutorial-pt-10-auth-jwt/)
 
 Three roles should exist: **anonymous**, **user**,  **admin**. 
 
