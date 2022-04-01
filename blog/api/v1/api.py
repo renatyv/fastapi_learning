@@ -38,13 +38,6 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@api_router.get("/my_user_id", status_code=status.HTTP_200_OK, response_model=int)
-async def get_current_authenticated_user_id(user_id: int = Depends(auth.get_current_authenticated_user_id)):
-    """authentification test. You need to be authenticated to see its result
-    :returns """
-    return user_id
-
-
 @api_router.get("/users", status_code=status.HTTP_200_OK, response_model=list[user.VisibleUserInfo])
 def get_all_users(skip: int = Query(0, ge=0.0, example=0),
                   limit: int = 10,
