@@ -22,6 +22,7 @@ and [tutorial from christophergs.com](https://christophergs.com/tutorials/ultima
 * Basic authorization:
   * user can not update or delete another user
   * user can not update or delete another user's post
+  * You need to be logged in to create a post
 
 ### Authentication
 Press the ``Authorize`` button to log in:
