@@ -18,9 +18,10 @@ Each post has author_id, title, and body (plain text).
 Implemented:
 * users: read, create, update, delete
 * posts: read, create, update, delete
-* Authentication:
-  * using OAuth2 + JWT token
-* Authorization:
+* Authentication (using the [official tutorial](https://fastapi.tiangolo.com/tutorial/security/oauth2-jwt/)
+and [tutorial from christophergs.com](https://christophergs.com/tutorials/ultimate-fastapi-tutorial-pt-10-auth-jwt/)):
+  * fastapi's OAuth2 + JWT token
+* Basic authorization:
   * user can not update or delete another user
   * user can not update or delete another user's post
 
@@ -57,7 +58,7 @@ User and Post read/create is tested using pytest.
 
 Run unit tests:
 
-```python3 -m pytest --no-header --tb=no tests_unit/```
+```python3 -m pytest --no-header --tb=no tests/```
 
 Run api (integration) tests:
 

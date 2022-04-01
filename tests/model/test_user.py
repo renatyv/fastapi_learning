@@ -1,5 +1,6 @@
 import pytest
 import sqlalchemy as sqlalchemy
+from sqlalchemy.future import Connection
 
 import blog.model.user as user
 
@@ -7,8 +8,8 @@ import blog.model.user as user
 # import os
 
 @pytest.fixture()
-def empty_inmemory_table_connection():
-    # setup inmemory database
+def empty_inmemory_table_connection() -> Connection:
+    """setup inmemory database and create table"""
     sqlite_engine = sqlalchemy.create_engine('sqlite://')
     connection = sqlite_engine.connect()
     connection.execute("""
@@ -25,8 +26,8 @@ def empty_inmemory_table_connection():
 
 
 @pytest.fixture()
-def three_users_inmemory_table_connection(empty_inmemory_table_connection):
-    # setup
+def three_users_inmemory_table_connection(empty_inmemory_table_connection) -> Connection:
+    """insert three test users"""
     filled_table_conn = empty_inmemory_table_connection
     filled_table_conn.execute("""
     INSERT INTO blog_user(username, email, password_hash, name, surname)

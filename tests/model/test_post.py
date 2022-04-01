@@ -1,5 +1,6 @@
 import pytest
 import sqlalchemy
+from sqlalchemy.future import Connection
 
 from blog.model import post
 
@@ -21,8 +22,8 @@ def empty_inmemory_table_connection():
 
 
 @pytest.fixture()
-def three_posts_inmemory_table_connection(empty_inmemory_table_connection):
-    # setup
+def three_posts_inmemory_table_connection(empty_inmemory_table_connection) -> Connection:
+    """Has three posts"""
     filled_table_conn = empty_inmemory_table_connection
     filled_table_conn.execute("""
     INSERT INTO blog_post(post_id, user_id, title, body)
