@@ -50,21 +50,35 @@ def test_create_new_post(empty_inmemory_table_connection):
 
 def test_update_nonexistent_post(empty_inmemory_table_connection):
     with pytest.raises(post.PostNotFoundException):
-        post.update_post(1,'title','body', empty_inmemory_table_connection)
+        post.update_post(1,1,'title','body', empty_inmemory_table_connection)
 
 
-def test_update_user(three_posts_inmemory_table_connection):
-    updated_post = post.update_post(1, 'Updated_title', 'Updated_body', three_posts_inmemory_table_connection)
+def test_update_post_unauthorized(three_posts_inmemory_table_connection):
+    with pytest.raises(post.NotYourPostException):
+        post.update_post(caller_user_id=2,
+                         post_id=1,
+                         title='Updated_title',
+                         body='Updated_body',
+                         db_connection=three_posts_inmemory_table_connection)
+
+
+def test_update_post(three_posts_inmemory_table_connection):
+    updated_post = post.update_post(1, 1, 'Updated_title', 'Updated_body', three_posts_inmemory_table_connection)
     actual_post = post.get_post_by_id(1, three_posts_inmemory_table_connection)
-    assert updated_post == actual_post
+    assert actual_post.title == 'Updated_title' and actual_post.body == 'Updated_body'
 
 
 def test_delete_inexistent_post(empty_inmemory_table_connection):
     """delete post by id"""
     with pytest.raises(post.PostNotFoundException):
-        post.delete_post(0, empty_inmemory_table_connection)
+        post.delete_post(1, 0, empty_inmemory_table_connection)
 
 
 def test_delete_user(three_posts_inmemory_table_connection):
-    post.delete_post(1, three_posts_inmemory_table_connection)
-    assert post.get_post_by_id(1,three_posts_inmemory_table_connection) is None
+    post.delete_post(1, 1, three_posts_inmemory_table_connection)
+    assert post.get_post_by_id(1, three_posts_inmemory_table_connection) is None
+
+
+def test_delete_unauthorized_user(three_posts_inmemory_table_connection):
+    with pytest.raises(post.NotYourPostException):
+        post.delete_post(2,1,three_posts_inmemory_table_connection)

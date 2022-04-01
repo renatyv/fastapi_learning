@@ -1,0 +1,5 @@
+FROM postgres:latest
+
+# postgres bcrypt module cryptography for password hashing
+RUN apt-get update\
+    && apt-get install -y --no-install-recommends postgresql-contrib

@@ -2,9 +2,9 @@ echo 'activating venv'
 source venv/bin/activate
 
 echo 'running unit tests'
-# python3 -m is used instead of 'pytest tests_unit/' to include source directory into python path
+# python3 -m is used instead of 'pytest tests/' to include source directory into python path
 #--tb=no, don't show long code parts if exception raised when running test (no tracebacks)
-python3 -m pytest --no-header --tb=no tests_unit/
+python3 -m pytest --no-header --tb=no tests/
 
 echo 'building containers'
 docker-compose -f docker-compose-common.yml -f docker-compose-debug.yml build

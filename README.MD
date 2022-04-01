@@ -18,6 +18,11 @@ Each post has author_id, title, and body (plain text).
 Implemented:
 * users: read, create, update, delete
 * posts: read, create, update, delete
+* Authentication:
+  * using OAuth2 + JWT token
+* Authorization:
+  * user can not update or delete another user
+  * user can not update or delete another user's post
 
 ## Start in debug mode
 Use the following script to deploy database and web server in two separate containers in debug mode: 
@@ -102,9 +107,8 @@ using **blog_admin** credentials remotely
 ``psql -h 127.0.0.1 -p 5432 -U blog_admin -d blog_db``
 
 #### Postgres DB initialization:
-Database should be pre-configured before starting the app using the following steps
-
-1. Login into docker user superuser **postgres** credentials  
+Database should be pre-configured before starting the app:
+1. Login into docker using superuser **postgres** credentials  
 ```docker exec -it fastapi_blog_database_1 psql -U postgres```
 2. Create database **blog_db**  
 ```create database blog_db;```<br/>
@@ -112,3 +116,5 @@ Database should be pre-configured before starting the app using the following st
 ```CREATE ROLE blog_admin WITH LOGIN PASSWORD 'YOUR_PASSWORD' CREATEROLE;```
 4. Let **blog_admin** create, update, delete tables   
 ```GRANT ALL PRIVILEGES ON DATABASE blog_db TO blog_admin;```
+5. Enable PGCRYPO extension
+```CREATE EXTENSION pgcrypto;```

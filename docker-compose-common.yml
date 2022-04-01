@@ -15,7 +15,8 @@ services:
     depends_on:
       - database
   database:
-    image: postgres:latest
+    build:
+      dockerfile: Dockerfile_db
     ports:
 #      - host-port:container-port
       - 5432:5432

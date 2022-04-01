@@ -2,14 +2,15 @@ FROM python:3-alpine
 
 WORKDIR /code
 
+# postgres sql support and bcrypt cryptography for password hashing
+RUN apk add --no-cache postgresql-libs py3-bcrypt libffi
+
 # install python requirements
 COPY ./requirements.txt /code/requirements.txt
 
-# install python requirements
 # --virtual: install packages, those packages are not added to global packages. And this change can be easily reverted.
 # saves about ~610Mb of images size
 RUN \
- apk add --no-cache postgresql-libs && \
  apk add --no-cache --virtual .build-deps build-base postgresql-dev python3-dev && \
  pip install --no-cache-dir --upgrade -r /code/requirements.txt && \
  apk --purge del .build-deps

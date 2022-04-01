@@ -1,10 +1,15 @@
-fastapi
-uvicorn[standard]
-pydantic
-pytest
-yoyo-migrations
+fastapi # REST API framework
+uvicorn[standard] # http server
+pydantic # validating input data
+pydantic[email] # validating email
+pytest # unit tests
+yoyo-migrations # database migrations
 psycopg2 # used for yoyo-migrations and postgres
-sqlalchemy
-loguru
-asyncpg
-requests
+sqlalchemy # database access
+loguru # looging
+asyncpg # asyncrhonous postgers access
+requests # testing api
+python-multipart # authentification
+python-jose # JWT tokens
+bcrypt # for hashing passwords
+passlib # hashing passwords

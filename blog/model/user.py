@@ -9,21 +9,31 @@ from sqlalchemy.engine import Connection, LegacyCursorResult
 from loguru import logger
 
 
-class User(BaseModel):
+class VisibleUserInfo(BaseModel):
     user_id: int
-    name: str
-    surname: str
+    username: str
+    name: Optional[str]
+    surname: Optional[str]
+    email: Optional[str]
 
 
-def get_all_users(db_connection: Connection, skip: int = 0, limit: int = 10**6) -> list[User]:
+class User(BaseModel):
+    user_info: VisibleUserInfo
+    password_hash: str
+
+
+def get_all_users(db_connection: Connection, skip: int = 0, limit: int = 10 ** 6) -> list[User]:
     """return 'limit' number users starting from 'skip'"""
     users = []
-    with db_connection.begin(): # within transaction
-        statement = text('SELECT user_id, name, surname FROM blog_user LIMIT :limit OFFSET :skip')
+    with db_connection.begin():  # within transaction
+        statement = text(
+            'SELECT user_id, username, name, surname, email, password_hash FROM blog_user LIMIT :limit OFFSET :skip')
         params = {'skip': skip, 'limit': limit}
-        rows = db_connection.execute(statement,**params).fetchall()
-        for user_id, name, surname in rows:
-            users.append(User(user_id=user_id,name=name,surname=surname))
+        rows = db_connection.execute(statement, **params).fetchall()
+        for user_id, username, name, surname, email, password_hash in rows:
+            users.append(User(
+                user_info=VisibleUserInfo(user_id=user_id, username=username, name=name, surname=surname, email=email),
+                password_hash=password_hash))
     return users
 
 
@@ -31,17 +41,43 @@ def get_user_by_id(user_id: int, db_connection: Connection) -> Optional[User]:
     """find user by his id
     :returns User object, if user is found in database
     :returns None if user is not found"""
-    with db_connection.begin(): # within transaction
+    with db_connection.begin():  # within transaction
         try:
-            statement = text("""SELECT user_id, name, surname FROM blog_user WHERE user_id = :user_id""")
+            statement = text(
+                """SELECT user_id, username, name, surname, email, password_hash FROM blog_user WHERE user_id = :user_id""")
             params = {'user_id': user_id}
-            rows = db_connection.execute(statement,**params).fetchall()
+            rows = db_connection.execute(statement, **params).fetchall()
         except Exception as e:
             logger.error(e)
             return None
         else:
-            for user_id, name, surname in rows:
-                return User(user_id=user_id, name=name, surname=surname)
+            for user_id, username, name, surname, email, password_hash in rows:
+                return User(user_info=VisibleUserInfo(user_id=user_id, username=username, name=name, surname=surname,
+                                                      email=email),
+                            password_hash=password_hash)
+
+
+def get_user_by_username(username: str, db_connection: Connection) -> Optional[User]:
+    """find user by his username
+    :returns User object, if user is found in database
+    :returns None if user is not found"""
+    with db_connection.begin():  # within transaction
+        try:
+            statement = text("""SELECT
+                                    user_id, username, name, surname, email, password_hash
+                                FROM blog_user
+                                WHERE username = :username""")
+            params = {'username': username}
+            rows = db_connection.execute(statement, **params).fetchall()
+        except Exception as e:
+            logger.error(e)
+            return None
+        else:
+            for user_id, username, name, surname, email, password_hash in rows:
+                return User(user_info=VisibleUserInfo(user_id=user_id, username=username, name=name, surname=surname,
+                                                      email=email),
+                            password_hash=password_hash)
+            return None
 
 
 class DuplicateUserCreationException(Exception):
@@ -52,15 +88,24 @@ class UnknownException(Exception):
     pass
 
 
-def create_user(username: str, surname: str, db_connection: Connection) -> User:
-    """adds new user to the database. If pair (name,surname) is already in db, raises exception
+def create_user(db_connection: Connection,
+                username: str,
+                password_hash: str,
+                email: Optional[str] = None,
+                name: Optional[str] = None,
+                surname: Optional[str] = None) -> User:
+    """adds new user to the database. If email is already in db, raises exception
+    saves hashed password
     :raises DuplicateUserCreationException if user with such name and surname exists already
     :raises UnknownException if smth went wrong while creating the user"""
     with db_connection.begin():  # within transaction
         try:
-            statement = text("""INSERT INTO blog_user(name, surname) VALUES (:username, :surname) RETURNING user_id""")
-            params = {'username': username, 'surname': surname}
-            row: sqlalchemy.engine.Row = db_connection.execute(statement,params).fetchone()
+            statement = text("""INSERT INTO blog_user(username, email, password_hash, name, surname)
+                                VALUES (:username, :email, :password_hash, :name, :surname)
+                                RETURNING user_id""")
+            params = {'username': username, 'email': email, 'password_hash': password_hash, 'name': name,
+                      'surname': surname}
+            row: sqlalchemy.engine.Row = db_connection.execute(statement, params).fetchone()
             user_id = row[0]
         except IntegrityError as ie:
             raise DuplicateUserCreationException(str(ie))
@@ -68,50 +113,67 @@ def create_user(username: str, surname: str, db_connection: Connection) -> User:
             logger.error(e)
             raise UnknownException(e)
         else:
-            return User(user_id=user_id, name=username, surname=surname)
+            return User(
+                user_info=VisibleUserInfo(user_id=user_id, username=username, name=name, surname=surname, email=email),
+                password_hash=password_hash)
 
 
 class UserNotFoundException(Exception):
     pass
 
 
-def update_user(user_id: int, name: Optional[str], surname: Optional[str], db_connection: Connection) -> User:
-    """updates name or surname for a user in db.
-    name and surname are optional. If they are not set, name and surname are not updated
+def update_user(db_connection: Connection,
+                user_id: int,
+                username: Optional[str] = None,
+                name: Optional[str] = None,
+                surname: Optional[str] = None,
+                email: Optional[str] = None,
+                password_hash: Optional[str] = None) -> User:
+    """Updates user info in database.
     :returns User object if update was successful
     :raises UserNotFoundException if user_id is invalied"""
-    with db_connection.begin(): # start transaction
+    user_to_update = get_user_by_id(user_id, db_connection)
+    if not user_to_update:
+        raise UserNotFoundException()
+    if username:
+        user_to_update.user_info.username = username
+    if name:
+        user_to_update.user_info.name = name
+    if surname:
+        user_to_update.user_info.surname = surname
+    if email:
+        user_to_update.user_info.email = email
+    if password_hash:
+        user_to_update.password_hash = password_hash
+    with db_connection.begin():  # start transaction
         try:
-            if name and surname:
-                statement = text("""UPDATE blog_user 
-                                    SET name = :name, surname = :surname 
-                                    WHERE user_id = :user_id
-                                    RETURNING name, surname """)
-            elif not name and surname:
-                statement = text("""UPDATE blog_user 
-                                    SET surname = :surname 
-                                    WHERE user_id = :user_id
-                                    RETURNING name, surname """)
-            elif name and not surname:
-                statement = text("""UPDATE blog_user 
-                                    SET name = :name 
-                                    WHERE user_id = :user_id
-                                    RETURNING name, surname """)
-            else:
-                statement = text("""SELECT name, surname 
-                                    FROM blog_user 
-                                    WHERE user_id = :user_id""")
-            params = {'name': name, 'surname': surname, 'user_id': user_id}
+            statement = text("""UPDATE blog_user 
+                                SET
+                                    username = :username,
+                                    name = :name,
+                                    surname = :surname,
+                                    email = :email,
+                                    password_hash = :password_hash 
+                                WHERE user_id = :user_id
+                                RETURNING username, name, surname, email, password_hash """)
+            params = {'username': user_to_update.user_info.username,
+                      'name': user_to_update.user_info.name,
+                      'surname': user_to_update.user_info.surname,
+                      'email': user_to_update.user_info.email,
+                      'password_hash': user_to_update.password_hash,
+                      'user_id': user_id}
             row = db_connection.execute(statement, params).fetchone()
         except Exception as e:
             logger.error('unknown error: {e}')
-            raise UnknownException
+            raise UnknownException()
         else:
             if row is None:
-                raise UserNotFoundException()
+                raise UnknownException()
             else:
-                updated_name, updated_surname = row
-                return User(user_id=user_id, name=updated_name, surname=updated_surname)
+                username, name, surname, email, password_hash = row
+                return User(user_info=VisibleUserInfo(user_id=user_id, username=username, name=name, surname=surname,
+                                                      email=email),
+                            password_hash=password_hash)
 
 
 def delete_user(user_id: int, db_connection: Connection):

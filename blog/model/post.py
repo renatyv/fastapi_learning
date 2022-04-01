@@ -44,9 +44,9 @@ def get_post_by_id(post_id: int, db_connection: Connection) -> Optional[Post]:
             logger.error(e)
             return None
         else:
-            logger.debug(f'Query successful, {rows}')
             for post_id, user_id, title, body in rows:
                 return Post(post_id=post_id, user_id=user_id, title=title, body=body)
+            return None
 
 
 class UnknownException(Exception):
@@ -79,33 +79,35 @@ class PostNotFoundException(Exception):
     pass
 
 
-def update_post(post_id: int, title: Optional[str], body: Optional[str], db_connection: Connection) -> Post:
+class NotYourPostException(Exception):
+    pass
+
+
+def update_post(caller_user_id: int, post_id: int, title: Optional[str], body: Optional[str], db_connection: Connection) -> Post:
     """updates title or body for the post in db.
     title and body are optional. If they are not set, title and body are not updated
+    :param caller_user_id who requested to update post
     :returns Post object if update was successful
-    :raises PostNotFoundException if post_id is invalied"""
+    :raises PostNotFoundException if post_id is invalied
+    :raises NotYourPostException if user_id is wrong"""
+    to_update_post = get_post_by_id(post_id, db_connection)
+    if not to_update_post:
+        raise PostNotFoundException
+    if to_update_post.user_id != caller_user_id:
+        raise NotYourPostException()
+    if title:
+        to_update_post.title = title
+    if body:
+        to_update_post.body = body
     with db_connection.begin(): # start transaction
         try:
-            if title and body:
-                statement = text("""UPDATE blog_post 
+            statement = text("""UPDATE blog_post 
                                     SET title = :title, body = :body 
                                     WHERE post_id = :post_id
                                     RETURNING user_id, title, body """)
-            elif body and not title:
-                statement = text("""UPDATE blog_post 
-                                    SET body = :body 
-                                    WHERE post_id = :post_id
-                                    RETURNING user_id, title, body """)
-            elif title and not body:
-                statement = text("""UPDATE blog_post 
-                                    SET title = :title 
-                                    WHERE post_id = :post_id
-                                    RETURNING user_id, title, body """)
-            else:
-                statement = text("""SELECT user_id, title, body 
-                                    FROM blog_post 
-                                    WHERE post_id = :post_id""")
-            params = {'title': title, 'body': body, 'post_id': post_id}
+            params = {'title': to_update_post.title,
+                      'body': to_update_post.body,
+                      'post_id': to_update_post.post_id}
             row = db_connection.execute(statement, params).fetchone()
         except Exception as e:
             logger.error('unknown error: {e}')
@@ -114,13 +116,19 @@ def update_post(post_id: int, title: Optional[str], body: Optional[str], db_conn
             if row is None:
                 raise PostNotFoundException()
             else:
-                user_id, title, body = row
-                return Post(post_id=post_id, user_id=user_id, title=title, body=body)
+                caller_user_id, title, body = row
+                return Post(post_id=post_id, user_id=caller_user_id, title=title, body=body)
 
 
-def delete_post(post_id: int, db_connection: Connection):
+def delete_post(caller_user_id:int, post_id: int, db_connection: Connection):
     """Delete post by post_id. Note, that all post posts will be deleted with CASCADE,
-    :raises PostNotFoundException if nothing is deleted from database"""
+    :raises PostNotFoundException if nothing is deleted from database
+    :raises NotYourPostException if user_id is wrong"""
+    to_delete_post = get_post_by_id(post_id, db_connection)
+    if not to_delete_post:
+        raise PostNotFoundException()
+    if to_delete_post.user_id != caller_user_id:
+        raise NotYourPostException()
     with db_connection.begin():  # within transaction
         try:
             statement = text("""DELETE FROM blog_post WHERE post_id = :post_id""")
