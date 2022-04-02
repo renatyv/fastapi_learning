@@ -14,7 +14,7 @@ WHERE username IS NULL;
 
 -- use hash of 'user_id'+'username' as a password for NULL values
 UPDATE blog_user
-SET password_hash=crypt(CONCAT(CAST(user_id AS VARCHAR), username),gen_salt('bf', 8))
+SET password_hash=crypt(CONCAT(CAST(user_id AS VARCHAR), username),gen_salt('md5'))
 WHERE password_hash IS NULL;
 
 -- make username unique

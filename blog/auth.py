@@ -29,7 +29,7 @@ class AuthorizationSettings(BaseSettings):
 authorization_settings = AuthorizationSettings()
 
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["md5_crypt"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:
