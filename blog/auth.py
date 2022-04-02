@@ -72,9 +72,7 @@ def create_access_token(data: dict) -> str:
     else:
         expire = datetime.utcnow() + timedelta(minutes=15)
     to_encode.update({"exp": expire})
-    logger.debug(f'encoding access token: {data}')
     encoded_jwt = jwt.encode(to_encode, authorization_settings.JWT_SECRET_KEY, algorithm=authorization_settings.JWT_ENCODE_ALGORITHM)
-    logger.debug(f"encoded token:{encoded_jwt}")
     return encoded_jwt
 
 
@@ -89,23 +87,18 @@ def get_current_authenticated_user_id(token: str = Depends(oauth2_scheme)) -> in
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        logger.debug(f'token:{token}')
         payload = jwt.decode(token, authorization_settings.JWT_SECRET_KEY, algorithms=[authorization_settings.JWT_ENCODE_ALGORITHM])
-        logger.debug(f'payload:{payload}')
         user_id: int = int(payload.get("sub"))
         if user_id is None:
             raise credentials_exception
     except ExpiredSignatureError:
-        logger.debug('signature is expired')
+        logger.info('signature is expired')
         raise credentials_exception
     except JWTClaimsError:
-        logger.debug('If any claim is invalid in any way')
+        logger.info('If any claim is invalid in any way')
         raise credentials_exception
     except JWTError:
-        # JWTError: If .
-        # ExpiredSignatureError: If the signature has expired.
-        # JWTClaimsError: If any claim is invalid in any way
-        logger.debug('the token signature is invalid in any way')
+        logger.info('the token signature is invalid in any way')
         raise credentials_exception
     return user_id
 

@@ -1,5 +1,4 @@
-from datetime import timedelta
-from typing import Union, Optional, Any
+from typing import Optional, Any
 
 from fastapi import Query, Path, Body, HTTPException, Depends, APIRouter
 from fastapi.security import OAuth2PasswordRequestForm
@@ -11,7 +10,7 @@ from blog import database
 from blog.model import user
 from blog.model import post
 from loguru import logger
-import blog.api.v1.auth as auth
+import blog.auth as auth
 from blog.model.user import VisibleUserInfo
 
 api_router = APIRouter()

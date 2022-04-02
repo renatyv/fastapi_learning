@@ -3,7 +3,7 @@ FROM python:3-alpine
 WORKDIR /code
 
 # postgres sql support and bcrypt cryptography for password hashing
-RUN apk add --no-cache postgresql-libs py3-bcrypt libffi
+RUN apk add --no-cache postgresql-libs libffi
 
 # install python requirements
 COPY ./requirements.txt /code/requirements.txt

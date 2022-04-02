@@ -11,5 +11,4 @@ asyncpg # asyncrhonous postgers access
 requests # testing api
 python-multipart # authentification
 python-jose # JWT tokens
-bcrypt # for hashing passwords
-passlib # hashing passwords
+passlib[bcrypt] # hashing passwords
