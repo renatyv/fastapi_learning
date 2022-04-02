@@ -1,5 +1,5 @@
 #for debug deployment
-# add -f docker-compose-prod to build with production environment
+# add -f docker-compose-production to build with production environment
 volumes:
   blog-postgres-volume:
 
@@ -22,5 +22,3 @@ services:
       - 5432:5432
     volumes:
       - 'blog-postgres-volume:/var/lib/postgresql/data'
-    env_file:
-      - env/debug/database.env
