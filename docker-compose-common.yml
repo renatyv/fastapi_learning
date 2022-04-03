@@ -5,7 +5,8 @@ volumes:
 
 services:
   web-api:
-    build: .
+    build:
+      dockerfile: config/Dockerfile
     env_file:
       - config/env/debug/webapi.env
     ports:
@@ -16,7 +17,7 @@ services:
       - database
   database:
     build:
-      dockerfile: Dockerfile_db
+      dockerfile: config/Dockerfile_db
     ports:
 #      - host-port:container-port
       - 5432:5432

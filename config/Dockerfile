@@ -16,7 +16,7 @@ RUN \
  apk --purge del .build-deps
 
 # copy code
-COPY blog /code/blog
+COPY ../blog /code/blog
 
 # start web api using uvicorn
 CMD ["uvicorn", "blog.main:app", "--host", "0.0.0.0" , "--port", "8100"]
