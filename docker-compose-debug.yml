@@ -6,7 +6,7 @@ services:
   web-api:
     volumes:
 # run using local code
-      - './blog:/code/blog'
+      - ./blog:/code/blog
     command: 'uvicorn blog.main:app --host 0.0.0.0 --port 8000 --reload'
     env_file:
       - env/debug/webapi.env
