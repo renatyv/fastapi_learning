@@ -6,7 +6,7 @@ WORKDIR /code
 RUN apk add --no-cache postgresql-libs libffi
 
 # install python requirements
-COPY ./requirements.txt /code/requirements.txt
+COPY config/requirements.txt /code/requirements.txt
 
 # --virtual: install packages, those packages are not added to global packages. And this change can be easily reverted.
 # saves about ~610Mb of images size
