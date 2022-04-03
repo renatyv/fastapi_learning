@@ -32,9 +32,13 @@ Default passwords
 2. For user with *user_id*=2 you can use password *22*
 
 ## Start in debug mode
-Use the following script to deploy database and web server in two separate containers in debug mode: 
+Use the following script to deploy database and web server in two separate containers in debug mode
 
 ```./start_debug.sh```
+
+Containers will be started locally, the code from local source directory will be mapped to the container, pytest will run.
+This code is auto-reloaded by uvicorn.
+If you don't wand this mapping, just run ```docker-compose up```.
 
 Dismantle containers:
 
@@ -42,7 +46,7 @@ Dismantle containers:
 
 Start web api and database container manually:
 
-```docker-compose up -f docker-compose.yml -f docker-compose-debug.yml up -d```
+```docker-compose -f docker-compose.yml -f config/docker-compose-debug.yml up -d```
 
 In debug mode the code inside container is mapped to local directory.
 If you change the code, the web server will reload it on the fly.
@@ -51,11 +55,11 @@ After deployment open [http://127.0.0.1:8100/docs](http://127.0.0.1:8100/docs)
 ## Production deployment
 Build docker images
 
-```docker-compose up -f docker-compose.yml -f docker-compose-prod.yml build```
+```docker-compose -f docker-compose.yml -f config/docker-compose-prod.yml build```
 
 Start docker containers using docker-compose
 
-```docker-compose up -f docker-compose.yml -f docker-compose-prod.yml up -d```
+```docker-compose -f docker-compose.yml -f config/docker-compose-prod.yml up -d```
 
 As a result, application is deployed at [http://127.0.0.1:8100/docs](http://127.0.0.1:8100/docs)
 
@@ -75,7 +79,7 @@ Comments:
 * ```--tb=no```  (to traceback) allows to hide long stack traces if exception raised when running test
 
 ## Dependencies
-1. Python, see ```requirements.txt```
+1. Python, see ```config/requirements.txt```
 2. yoyo migrations
 3. Postgres SQL
 4. Docker, docker-compose
@@ -84,15 +88,15 @@ Comments:
 
 * PostgresSQL 14, Built using docker, default port 5432
 * Admin username: **blog_admin**, database: **blog_db** 
-* Password is set using environment variables in ```env/debug/database.env``` and ```env/production/database.env``` for debug and production correspondingly.
-See template with all necessary env variables in ```env/template/database.env```. 
+* Password is set using environment variables in ```config/env/debug/database.env``` and ```env/production/database.env``` for debug and production correspondingly.
+See template with all necessary env variables in ```config/env/template/database.env```. 
 
 ### yoyo migrations
 Before running migrations, you should provide username, password and database names through environment variables, see template at ```env/template/webapi.env```.
 
 set environment:
 
-```export $(cat env/debug/webapi.env | xargs)```
+```export $(cat config/env/debug/webapi.env | xargs)```
 
 Basic commands:
 * list migrations ```yoyo list```
@@ -102,13 +106,9 @@ Basic commands:
 
 SQL migration scripts (DDLs) are in ```db_migrations/```
 
-Configuration file: ``yoyo.ini``
+YOYO configuration file: ``yoyo.ini``
 
 #### How to log into the database
-using **blog_admin** credentials from container
-
-```docker exec -it fastapi_blog_database_1 psql -U blog_admin -d blog_db```
-
 using **blog_admin** credentials remotely
 
 ``psql -h 127.0.0.1 -p 5432 -U blog_admin -d blog_db``

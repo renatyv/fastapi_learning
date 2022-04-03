@@ -1,2 +1,2 @@
 echo 'Removing all docker containers'
-docker-compose -f docker-compose-common.yml -f docker-compose-debug.yml down
+docker-compose -f docker-compose.yml -f config/docker-compose-debug.yml down

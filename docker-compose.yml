@@ -1,5 +1,5 @@
-#for debug deployment
-# add -f docker-compose-production to build with production environment
+# configured for debug deployment by default
+# for production deployment call docker-compose -f docker-compose.yml -f config/docker-compose-prod.yml
 volumes:
   blog-postgres-volume:
 
@@ -12,7 +12,7 @@ services:
     ports:
       #      - host-port:container-port
       - 8100:8000
-    command: 'blog.main:app --host 0.0.0.0 --port 8000 --reload'
+    command: 'uvicorn blog.main:app --host 0.0.0.0 --port 8000 --reload'
     depends_on:
       - database
   database:
