@@ -7,7 +7,7 @@ services:
   web-api:
     build: .
     env_file:
-      - env/debug/webapi.env
+      - config/env/debug/webapi.env
     ports:
       #      - host-port:container-port
       - 8100:8000

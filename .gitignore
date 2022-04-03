@@ -9,7 +9,7 @@ __pycache__/
 
 *.egg-info/
 
-env/production/
-env/debug/
+config/env/production/
+config/env/debug/
 
 yoyo_db_credentials.ini

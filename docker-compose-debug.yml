@@ -9,4 +9,4 @@ services:
       - ./blog:/code/blog
     command: 'uvicorn blog.main:app --host 0.0.0.0 --port 8000 --reload'
     env_file:
-      - env/debug/webapi.env
+      - config/env/debug/webapi.env
