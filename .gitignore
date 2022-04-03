@@ -11,5 +11,3 @@ __pycache__/
 
 config/env/production/
 config/env/debug/
-
-yoyo_db_credentials.ini

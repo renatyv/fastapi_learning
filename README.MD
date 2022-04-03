@@ -125,3 +125,6 @@ Database should be pre-configured before starting the app:
 ```GRANT ALL PRIVILEGES ON DATABASE blog_db TO blog_admin;```
 5. Enable PGCRYPO extension
 ```CREATE EXTENSION pgcrypto;```
+
+### TODO
+see [file in docs folder](docs/TODO.MD)
