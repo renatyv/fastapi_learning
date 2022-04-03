@@ -23,7 +23,6 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     :returns {"access_token": encoded_JWT_access_token, "token_type": "bearer"}
     :raises HTTPException if authentification failed"""
     try:
-        logger.debug(f'username:{form_data.username}, pass:{form_data.password}')
         encoded_JWT_access_token = auth.authenticate_user(form_data.username, form_data.password, db_connection)
         return {"access_token": encoded_JWT_access_token, "token_type": "bearer"}
     except (user.UserNotFoundException, auth.PasswordDoesNotMatchException) as e:
@@ -86,7 +85,7 @@ def create_user(username: str = Body(..., # required, no default value. = None t
                             detail=str(e))
 
 
-@api_router.put("/users/{user_id}", status_code=status.HTTP_200_OK, response_model=user.VisibleUserInfo)
+@api_router.put("/users", status_code=status.HTTP_200_OK, response_model=user.VisibleUserInfo)
 def update_user_info(user_id: int = Depends(auth.get_current_authenticated_user_id),
                      username: Optional[str] = Body(None,  # optional, set '...' to make optional
                                                     min_length=1, max_length=250),
@@ -96,11 +95,12 @@ def update_user_info(user_id: int = Depends(auth.get_current_authenticated_user_
                      name: Optional[str] = Body(None, max_length=100),
                      surname: Optional[str] = Body(None, max_length=100),
                      db_connection: Connection = Depends(database.get_database_connection)) -> VisibleUserInfo:
-    """Update name or surname for specific user"""
+    """Update name or surname for user"""
     try:
+        password_hash = auth.hash_password(password) if password else None
         return user.update_user(user_id=user_id,
                                 username=username,
-                                password_hash=auth.hash_password(password),
+                                password_hash=password_hash,
                                 email=email,
                                 name=name,
                                 surname=surname,
@@ -111,7 +111,7 @@ def update_user_info(user_id: int = Depends(auth.get_current_authenticated_user_
                             detail=f'user with user_id={user_id} not found')
 
 
-@api_router.delete("/users/{user_id}", status_code=status.HTTP_200_OK)
+@api_router.delete("/users", status_code=status.HTTP_200_OK)
 def delete_user(user_id: int = Depends(auth.get_current_authenticated_user_id),
                 db_connection: Connection = Depends(database.get_database_connection)):
     """Delete user by id.
