@@ -2,7 +2,7 @@ from typing import Optional, Any
 
 from fastapi import Query, Path, Body, HTTPException, Depends, APIRouter
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import EmailStr
+from pydantic import EmailStr, BaseModel
 from sqlalchemy.engine import Connection
 from starlette import status
 
@@ -16,15 +16,20 @@ from blog.model.user import VisibleUserInfo
 api_router = APIRouter()
 
 
-@api_router.post("/token", response_model=auth.Token)
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+@api_router.post("/token", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(),
-                                 db_connection: Connection = Depends(database.get_database_connection)) -> dict:
+                                 db_connection: Connection = Depends(database.get_database_connection)) -> Token:
     """login form is redirected here
     :returns {"access_token": encoded_JWT_access_token, "token_type": "bearer"}
     :raises HTTPException if authentification failed"""
     try:
         encoded_JWT_access_token = auth.authenticate_user(form_data.username, form_data.password, db_connection)
-        return {"access_token": encoded_JWT_access_token, "token_type": "bearer"}
+        return Token(access_token=encoded_JWT_access_token)
     except (user.UserNotFoundException, auth.PasswordDoesNotMatchException) as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -164,7 +169,7 @@ def create_post(user_id: int = Depends(auth.get_current_authenticated_user_id), 
 
 
 @api_router.put("/posts/{post_id}", status_code=status.HTTP_200_OK, response_model=post.Post)
-def update_post_info(post_id: int,
+def update_post_info(post_id: int = Path(...),
                      user_id: int = Depends(auth.get_current_authenticated_user_id),
                      title: str = Body(None, min_length=1, # ... means field is optional
                                        max_length=300),

@@ -10,12 +10,7 @@ from passlib.context import CryptContext
 from pydantic import BaseSettings, BaseModel
 from sqlalchemy.future import Connection
 
-from blog import database
 from blog.model import user
-
-# Oauth2 authentification
-# token is a relative url. Browser will use it to send login and password
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/token")
 
 
 class AuthorizationSettings(BaseSettings):
@@ -26,19 +21,21 @@ class AuthorizationSettings(BaseSettings):
 
 
 # load settings from environment
-authorization_settings = AuthorizationSettings()
+__authorization_settings = AuthorizationSettings()
 
+# Oauth2 authentification
+__oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/token")
 
-pwd_context = CryptContext(schemes=["md5_crypt"], deprecated="auto")
+__pwd_context = CryptContext(schemes=["md5_crypt"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    return __pwd_context.hash(password)
 
 
-def verify_password(plaintext_password, hash) -> bool:
+def _verify_password(plaintext_password, hash) -> bool:
     try:
-        return pwd_context.verify(plaintext_password, hash)
+        return __pwd_context.verify(plaintext_password, hash)
     except Exception as e:
         logger.error(e)
         return False
@@ -56,27 +53,28 @@ def authenticate_user(username: str, password: str, db_connection: Connection) -
     found_user = user.get_user_by_username(username=username, db_connection=db_connection)
     if not found_user:
         raise user.UserNotFoundException()
-    if not verify_password(password, found_user.password_hash):
+    if not _verify_password(password, found_user.password_hash):
         raise PasswordDoesNotMatchException()
     jwt_token_subject = str(found_user.user_info.user_id)
-    return create_access_token(data={"sub": jwt_token_subject})
+    return _create_access_token(data={"sub": jwt_token_subject})
 
 
-def create_access_token(data: dict) -> str:
+def _create_access_token(data: dict) -> str:
     """creates JWT access token, storing data in it.
     :returns JWT access token"""
     to_encode = data.copy()
-    expires_delta = timedelta(minutes=authorization_settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
+    expires_delta = timedelta(minutes=__authorization_settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=15)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, authorization_settings.JWT_SECRET_KEY, algorithm=authorization_settings.JWT_ENCODE_ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, __authorization_settings.JWT_SECRET_KEY,
+                             algorithm=__authorization_settings.JWT_ENCODE_ALGORITHM)
     return encoded_jwt
 
 
-def get_current_authenticated_user_id(token: str = Depends(oauth2_scheme)) -> int:
+def get_current_authenticated_user_id(token: str = Depends(__oauth2_scheme)) -> int:
     """finds current user using OAuth2 token
     :returns user.User object if authentification is successfull
     :raises user.UserNotFoundException
@@ -87,7 +85,8 @@ def get_current_authenticated_user_id(token: str = Depends(oauth2_scheme)) -> in
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, authorization_settings.JWT_SECRET_KEY, algorithms=[authorization_settings.JWT_ENCODE_ALGORITHM])
+        payload = jwt.decode(token, __authorization_settings.JWT_SECRET_KEY,
+                             algorithms=[__authorization_settings.JWT_ENCODE_ALGORITHM])
         user_id: int = int(payload.get("sub"))
         if user_id is None:
             raise credentials_exception
@@ -101,8 +100,3 @@ def get_current_authenticated_user_id(token: str = Depends(oauth2_scheme)) -> in
         logger.info('the token signature is invalid in any way')
         raise credentials_exception
     return user_id
-
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str
