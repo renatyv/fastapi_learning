@@ -18,13 +18,14 @@ class AuthorizationSettings(BaseSettings):
     JWT_SECRET_KEY: str
     JWT_ENCODE_ALGORITHM: str
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int
+    URL_PREFIX_FOR_V1_API: str
 
 
 # load settings from environment
 __authorization_settings = AuthorizationSettings()
 
 # Oauth2 authentification
-__oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/token")
+__oauth2_scheme = OAuth2PasswordBearer(tokenUrl=__authorization_settings.URL_PREFIX_FOR_V1_API+"/token")
 
 __pwd_context = CryptContext(schemes=["md5_crypt"], deprecated="auto")
 
