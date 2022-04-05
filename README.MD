@@ -24,12 +24,18 @@ and [tutorial from christophergs.com](https://christophergs.com/tutorials/ultima
   * user can not update or delete another user's post
   * You need to be logged in to create a post
 
-### Authentication
-Press the ``Authorize`` button to log in:
-![Login screen](docs/authentication_screen.png "Press the ``Authorize`` button to log in")
-Default passwords
-1. For user with *user_id*=1 you can use password *11*
-2. For user with *user_id*=2 you can use password *22*
+### Project structure
+
+* ```blog/``` – source code, python 3.5+ 
+* ```config``` – docker files, requirements, environment variables
+* ```db_migrations``` – SQL scripts for database migrations
+* ```docs``` – pics for README.MD
+* ```tests``` – unit tests, run with *pytest*
+* ```README.MD``` – you are currently reading it
+* ```docker-compose.yml``` – how to start containers, how they are connected
+* ```tests_api``` – API tests. Run after docker containers are up & running
+* ```start_debug.sh```, ```stop_debug.sh``` – scripts for deploying & testing code locally
+* ```yoyo.ini``` – configs for yoyo migrations utility
 
 ## Start in debug mode
 Use the following script to deploy database and web server in two separate containers in debug mode
@@ -52,7 +58,16 @@ In debug mode the code inside container is mapped to local directory.
 If you change the code, the web server will reload it on the fly.
 After deployment open [http://127.0.0.1:8100/docs](http://127.0.0.1:8100/docs)
 
+### Login & password for testing
+Press the ``Authorize`` button to log in:
+![Login screen](docs/authentication_screen.png "Press the ``Authorize`` button to log in")
+Default passwords
+1. For user with *user_id*=1 you can use password *11*
+2. For user with *user_id*=2 you can use password *22*
+
+
 ## Production deployment
+
 Build docker images
 
 ```docker-compose -f docker-compose.yml -f config/docker-compose-prod.yml build```
@@ -64,6 +79,7 @@ Start docker containers using docker-compose
 As a result, application is deployed at [http://127.0.0.1:8100/docs](http://127.0.0.1:8100/docs)
 
 ## Tests
+
 User and Post read/create is tested using pytest.
 
 Run unit tests:
@@ -78,12 +94,6 @@ Comments:
 * ```python3 -m``` is used instead of 'pytest tests_unit/' to include source directory into python path
 * ```--tb=no```  (to traceback) allows to hide long stack traces if exception raised when running test
 
-## Dependencies
-1. Python, see ```config/requirements.txt```
-2. yoyo migrations
-3. Postgres SQL
-4. Docker, docker-compose
-
 ## Database
 
 * PostgresSQL 14, Built using docker, default port 5432
@@ -92,6 +102,7 @@ Comments:
 See template with all necessary env variables in ```config/env/template/database.env```. 
 
 ### yoyo migrations
+
 Before running migrations, you should provide username, password and database names through environment variables, see template at ```env/template/webapi.env```.
 
 set environment:
@@ -125,6 +136,3 @@ Database should be pre-configured before starting the app:
 ```GRANT ALL PRIVILEGES ON DATABASE blog_db TO blog_admin;```
 5. Enable PGCRYPO extension
 ```CREATE EXTENSION pgcrypto;```
-
-### TODO
-see [file in docs folder](docs/TODO.MD)
