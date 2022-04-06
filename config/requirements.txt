@@ -3,11 +3,13 @@ uvicorn[standard] # http server
 pydantic # validating input data
 pydantic[email] # validating email
 pytest # unit tests
-yoyo-migrations # database migrations
+pytest-asyncio # calling async methods in pytest
 psycopg2 # used for yoyo-migrations and postgres
-sqlalchemy # database access
-loguru # looging
+aiosqlite # async wrapper for sqlite driver
 asyncpg # asyncrhonous postgers access
+sqlalchemy # database access
+yoyo-migrations # database migrations
+loguru # looging
 requests # testing api
 python-multipart # authentification
 python-jose # JWT tokens

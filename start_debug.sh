@@ -4,7 +4,8 @@ source venv/bin/activate
 echo 'running unit tests'
 # python3 -m is used instead of 'pytest tests/' to include source directory into python path
 #--tb=no, don't show long code parts if exception raised when running test (no tracebacks)
-python3 -m pytest --no-header --tb=no tests/
+#--asyncio-mode=strict all async tests and fixtures must be marketed with pytest_asyncio
+python3 -m pytest --no-header --tb=no --asyncio-mode=strict tests/
 
 echo 'building containers'
 docker-compose -f docker-compose.yml -f config/docker-compose-debug.yml build

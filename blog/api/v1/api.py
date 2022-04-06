@@ -4,6 +4,7 @@ from fastapi import Query, Path, Body, HTTPException, Depends, APIRouter
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import EmailStr, BaseModel
 from sqlalchemy.engine import Connection
+from sqlalchemy.ext.asyncio import AsyncConnection
 from starlette import status
 
 from blog import database
@@ -42,20 +43,21 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 
 @api_router.get("/users", status_code=status.HTTP_200_OK, response_model=list[user.VisibleUserInfo])
-def get_all_users(skip: int = Query(0, ge=0.0, example=0),
-                  limit: int = 10,
-                  db_connection: Connection = Depends(database.get_database_connection)) -> Any:
-    """get all users
+async def get_all_users(skip: int = Query(0, ge=0.0, example=0),
+                        limit: int = 10,
+                        async_db_connection: AsyncConnection = Depends(database.get_async_db_connection)) -> Any:
+    """get list of all users
     :param skip. skip >= 0. optional
     :param limit. default 10. optional
     :param auth_token OAuth2 token
     """
-    return [u.user_info for u in user.get_all_users(db_connection, skip=skip, limit=limit)]
+    users = await user.get_all_users_async(async_db_connection, skip, limit)
+    return [u.user_info for u in users]
 
 
 @api_router.get("/users/{user_id}", status_code=status.HTTP_302_FOUND, response_model=Optional[user.VisibleUserInfo])
 def get_user(user_id: int = Path(..., ge=0.0),
-             db_connection: Connection = Depends(database.get_database_connection)) -> Optional[user.User]:
+             db_connection: Connection = Depends(database.get_database_connection)) -> Optional[user.VisibleUserInfo]:
     """get specific user
     :param user_id is required, greater than 0
     """

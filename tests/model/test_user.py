@@ -1,40 +1,43 @@
 import pytest
 import sqlalchemy as sqlalchemy
-from sqlalchemy.future import Connection
+from sqlalchemy.engine import Connection, LegacyCursorResult, Result, Row
+from sqlalchemy.ext.asyncio import AsyncConnection, create_async_engine
 
 import blog.model.user as user
 
 
 # import os
 
+
+CREATE_USER_TABLE = """CREATE TABLE blog_user(
+                user_id INTEGER PRIMARY KEY,
+                password_hash VARCHAR(300),
+                email VARCHAR(254),
+                username VARCHAR(100) UNIQUE,
+                name VARCHAR(200),
+                surname VARCHAR(200));"""
+
+ADD_THREE_USERS = """INSERT INTO blog_user(username, email, password_hash, name, surname)
+    VALUES
+        ('renatyv', 'renatyv@gmail.com', 'password_hash_renat', 'Renat', 'Yuldashev'),
+        ('maratyv', 'maratyv@gmail.com', 'password_hash_marat', 'Marat', 'Yuldashev'),
+        ('putin', 'putin@russia.ru', 'password_hash_putin', 'Vladimir', 'Putin');"""
+
+
 @pytest.fixture()
 def empty_inmemory_table_connection() -> Connection:
     """setup inmemory database and create table"""
     sqlite_engine = sqlalchemy.create_engine('sqlite://')
-    connection = sqlite_engine.connect()
-    connection.execute("""
-    CREATE TABLE blog_user(
-        user_id INTEGER PRIMARY KEY,
-        password_hash VARCHAR(300),
-        email VARCHAR(254),
-        username VARCHAR(100) UNIQUE,
-        name VARCHAR(200),
-        surname VARCHAR(200));""")
-    yield connection
-    # teardown
-    connection.close()
+    with sqlite_engine.connect() as connection:
+        connection.execute(CREATE_USER_TABLE)
+        yield connection
 
 
 @pytest.fixture()
-def three_users_inmemory_table_connection(empty_inmemory_table_connection) -> Connection:
+def three_users_inmemory_table_connection(empty_inmemory_table_connection) -> AsyncConnection:
     """insert three test users"""
     filled_table_conn = empty_inmemory_table_connection
-    filled_table_conn.execute("""
-    INSERT INTO blog_user(username, email, password_hash, name, surname)
-    VALUES
-        ('renatyv', 'renatyv@gmail.com', 'password_hash_renat', 'Renat', 'Yuldashev'),
-        ('maratyv', 'maratyv@gmail.com', 'password_hash_marat', 'Marat', 'Yuldashev'),
-        ('putin', 'putin@russia.ru', 'password_hash_putin', 'Vladimir', 'Putin');""")
+    filled_table_conn.execute(ADD_THREE_USERS)
     return filled_table_conn
 
 

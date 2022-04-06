@@ -5,7 +5,8 @@ from sqlalchemy.exc import IntegrityError
 import sqlalchemy.engine
 from pydantic import BaseModel
 from sqlalchemy import text
-from sqlalchemy.engine import Connection, LegacyCursorResult
+from sqlalchemy.engine import Connection, LegacyCursorResult, Result, Row
+from sqlalchemy.ext.asyncio import AsyncConnection
 from loguru import logger
 
 
@@ -29,7 +30,22 @@ def get_all_users(db_connection: Connection, skip: int = 0, limit: int = 10 ** 6
         statement = text(
             'SELECT user_id, username, name, surname, email, password_hash FROM blog_user LIMIT :limit OFFSET :skip')
         params = {'skip': skip, 'limit': limit}
-        rows = db_connection.execute(statement, **params).fetchall()
+        rows: list[Row] = db_connection.execute(statement, **params).all()
+        for user_id, username, name, surname, email, password_hash in rows:
+            users.append(User(
+                user_info=VisibleUserInfo(user_id=user_id, username=username, name=name, surname=surname, email=email),
+                password_hash=password_hash))
+    return users
+
+
+async def get_all_users_async(db_connection: AsyncConnection, skip: int = 0, limit: int = 10 ** 6) -> list[User]:
+    """return 'limit' number users starting from 'skip'"""
+    users = []
+    statement = text('SELECT user_id, username, name, surname, email, password_hash FROM blog_user LIMIT :limit OFFSET :skip')
+    params = {'skip': skip, 'limit': limit}
+    async with db_connection.begin():  # within transaction
+        result: Result = await db_connection.execute(statement, parameters=params)
+        rows = result.all()
         for user_id, username, name, surname, email, password_hash in rows:
             users.append(User(
                 user_info=VisibleUserInfo(user_id=user_id, username=username, name=name, surname=surname, email=email),
