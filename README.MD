@@ -136,3 +136,10 @@ Database should be pre-configured before starting the app:
 ```GRANT ALL PRIVILEGES ON DATABASE blog_db TO blog_admin;```
 5. Enable PGCRYPO extension
 ```CREATE EXTENSION pgcrypto;```
+
+## useful ayncio links:
+1. [Developing with asyncio](https://docs.python.org/3/library/asyncio-dev.html#developing-with-asyncio)
+2. An executor can be used to run a task in a different thread or even in a different process to avoid blocking the OS thread with the event loop. See the loop.run_in_executor() method for more details.
+[example](https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.loop.run_in_executor)
+3. ```asyncio.wait_for``` – use timeout
+4. [how asyncio works internally](https://tenthousandmeters.com/blog/python-behind-the-scenes-12-how-asyncawait-works-in-python/)

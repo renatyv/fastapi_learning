@@ -16,7 +16,6 @@ from blog.model.user import VisibleUserInfo
 
 api_router = APIRouter()
 
-
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"

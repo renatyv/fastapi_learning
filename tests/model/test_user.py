@@ -34,7 +34,7 @@ def empty_inmemory_table_connection() -> Connection:
 
 
 @pytest.fixture()
-def three_users_inmemory_table_connection(empty_inmemory_table_connection) -> AsyncConnection:
+def three_users_inmemory_table_connection(empty_inmemory_table_connection) -> Connection:
     """insert three test users"""
     filled_table_conn = empty_inmemory_table_connection
     filled_table_conn.execute(ADD_THREE_USERS)
@@ -52,6 +52,11 @@ def test_get_user_1(three_users_inmemory_table_connection):
     user_id = 1
     found_user = user.get_user_by_id(user_id, three_users_inmemory_table_connection)
     assert found_user.user_info.user_id == user_id
+
+
+def test_get_by_name(three_users_inmemory_table_connection):
+    found_user = user.get_user_by_username('renatyv', three_users_inmemory_table_connection)
+    assert found_user.user_info.email == 'renatyv@gmail.com'
 
 
 def test_create_new_user(empty_inmemory_table_connection):
