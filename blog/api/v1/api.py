@@ -21,7 +21,8 @@ api_router = APIRouter()
 
 
 @api_router.post("/token", status_code=status.HTTP_200_OK, response_model=auth.Token)
-async def access_token_from_login_pass(encoded_JWT_access_token: auth.Token = Depends(generate_JWT_token_from_login_pass)) -> auth.Token:
+async def access_token_from_login_pass(
+        encoded_JWT_access_token: auth.Token = Depends(generate_JWT_token_from_login_pass)) -> auth.Token:
     """login form is redirected here
     :returns {"access_token": encoded_JWT_access_token, "token_type": "bearer"}
     :raises HTTPException if authentification failed"""
@@ -65,7 +66,7 @@ def get_user(user_id: int = Path(..., ge=0.0),
 
 
 @api_router.post("/users/", status_code=status.HTTP_200_OK, response_model=user.VisibleUserInfo)
-def create_user(username: str = Body(..., # required, no default value. = None to make optional
+def create_user(username: str = Body(...,  # required, no default value. = None to make optional
                                      min_length=1,
                                      max_length=250),
                 password: str = Body(..., min_length=1,
@@ -83,7 +84,7 @@ def create_user(username: str = Body(..., # required, no default value. = None t
                                 surname=surname,
                                 db_connection=db_connection).user_info
     except user.DuplicateUserCreationException as e:
-        logger.info('Trying to create duplicate user:'+str(e))
+        logger.info('Trying to create duplicate user:' + str(e))
         raise HTTPException(status_code=status.HTTP_304_NOT_MODIFIED,
                             detail=str(e))
 
@@ -92,7 +93,7 @@ def create_user(username: str = Body(..., # required, no default value. = None t
 def update_user_info(user_id: int = Depends(auth.get_current_authenticated_user_id),
                      username: Optional[str] = Body(None,  # optional, set '...' to make optional
                                                     min_length=1, max_length=250),
-                     password: Optional[str] = Body(None, # optional, set '...' to make optional
+                     password: Optional[str] = Body(None,  # optional, set '...' to make optional
                                                     min_length=1, max_length=300),
                      email: Optional[EmailStr] = Body(None),
                      name: Optional[str] = Body(None, max_length=100),
@@ -113,7 +114,7 @@ def update_user_info(user_id: int = Depends(auth.get_current_authenticated_user_
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Null bytes are prohibited in password")
     except user.UserNotFoundException as e:
-        logger.info(f'Trying to update non-existent user with user_id={user_id}:'+str(e))
+        logger.info(f'Trying to update non-existent user with user_id={user_id}:' + str(e))
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f'user with user_id={user_id} not found')
 
@@ -131,11 +132,19 @@ def delete_user(user_id: int = Depends(auth.get_current_authenticated_user_id),
 
 
 @api_router.get("/posts", status_code=status.HTTP_200_OK, response_model=list[post.Post])
-def get_all_posts(skip: int = Query(0, ge=0.0, example=0),
-                  limit: int = 10,
-                  db_connection: Connection = Depends(database.get_database_connection)) -> list[post.Post]:
+async def get_all_posts(skip: int = Query(0, ge=0.0, example=0),
+                        limit: int = 10,
+                        db_connection: Connection = Depends(database.get_database_connection)) -> list[post.Post]:
     """get all posts"""
-    return post.get_all_posts(db_connection, skip=skip, limit=limit)
+    # return post.get_all_posts(db_connection, skip=skip, limit=limit)
+    try:
+        posts = await post.get_all_posts_async(db_connection, skip=skip, limit=limit)
+        return posts
+    except Exception as e:
+        logger.error(e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail='Unknown error')
+
 
 
 @api_router.get("/posts/{post_id}", status_code=status.HTTP_302_FOUND, response_model=post.Post)
@@ -152,11 +161,12 @@ def get_post(post_id: int = Path(..., ge=0.0),  # required, no default value. = 
 
 
 @api_router.post("/posts/", status_code=status.HTTP_201_CREATED, response_model=post.Post)
-def create_post(user_id: int = Depends(auth.get_current_authenticated_user_id),  # required, no default value. = None to make optional
+def create_post(user_id: int = Depends(auth.get_current_authenticated_user_id),
+                # required, no default value. = None to make optional
                 title: str = Body(..., min_length=1,
-                                     max_length=300),
+                                  max_length=300),
                 body: str = Body(..., min_length=0,
-                                  max_length=10000),
+                                 max_length=10000),
                 db_connection: Connection = Depends(database.get_database_connection)) -> post.Post:
     """create new post
     :param user_id: may exist in users. If it does not, no error is returned, post is created"""
@@ -173,9 +183,9 @@ def create_post(user_id: int = Depends(auth.get_current_authenticated_user_id), 
 @api_router.put("/posts/{post_id}", status_code=status.HTTP_200_OK, response_model=post.Post)
 def update_post_info(post_id: int = Path(...),
                      user_id: int = Depends(auth.get_current_authenticated_user_id),
-                     title: str = Body(None, min_length=1, # ... means field is optional
+                     title: str = Body(None, min_length=1,  # ... means field is optional
                                        max_length=300),
-                     body: str = Body(None, min_length=0, # ... means field is optional
+                     body: str = Body(None, min_length=0,  # ... means field is optional
                                       max_length=10000),
                      db_connection: Connection = Depends(database.get_database_connection)):
     """Update title or body for specific post"""
@@ -197,12 +207,10 @@ def delete_post(post_id: int,
     """Delete user by id.
     :raises HTTPException if user is not found, nothing is deleted"""
     try:
-        post.delete_post(user_id,post_id, db_connection)
+        post.delete_post(user_id, post_id, db_connection)
     except post.NotYourPostException:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail='not your post_id')
     except post.PostNotFoundException as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f'post with post_id={post_id} not found')
-
-

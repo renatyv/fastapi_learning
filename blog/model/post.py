@@ -4,10 +4,11 @@ import sqlalchemy
 from loguru import logger
 from pydantic import BaseModel
 from sqlalchemy import text
-from sqlalchemy.dialects.postgresql import psycopg2
 from sqlalchemy.engine import LegacyCursorResult
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.future import Connection
+
+from blog import threadpool_executor
 
 
 class Post(BaseModel):
@@ -15,6 +16,10 @@ class Post(BaseModel):
     user_id: int
     title: str
     body: str
+
+
+class RandomHuyException(Exception):
+    pass
 
 
 def get_all_posts(db_connection: Connection, skip: int = 0, limit: int = 10**6) -> list[Post]:
@@ -29,6 +34,14 @@ def get_all_posts(db_connection: Connection, skip: int = 0, limit: int = 10**6) 
         rows = db_connection.execute(statement,**params).fetchall()
         for post_id, user_id, title, body in rows:
             posts.append(Post(user_id=user_id, post_id=post_id, title=title, body=body))
+    return posts
+
+
+async def get_all_posts_async(db_connection: Connection,
+                              skip: int = 0, limit: int = 10**6) -> list[Post]:
+    """Returns all posts from database asynchrnously.
+    params skip and limit work the same way as for lists"""
+    posts = await threadpool_executor.run_asynchonously(get_all_posts, db_connection, skip=skip, limit=limit)
     return posts
 
 
