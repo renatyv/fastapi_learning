@@ -7,30 +7,27 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import AsyncConnection
 from starlette import status
 
-from blog import database
+from blog.dependicies import auth, database
+from blog.dependicies.auth import generate_JWT_token_from_login_pass
 from blog.model import user
 from blog.model import post
 from loguru import logger
-import blog.auth as auth
+import blog.model.auth.user_token as user_token
+from blog.model.auth import user_password
+from blog.model.auth.user_password import NullInPusswordException
 from blog.model.user import VisibleUserInfo
 
 api_router = APIRouter()
 
-class Token(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
 
-
-@api_router.post("/token", response_model=Token)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(),
-                                 db_connection: Connection = Depends(database.get_database_connection)) -> Token:
+@api_router.post("/token", status_code=status.HTTP_200_OK, response_model=auth.Token)
+async def access_token_from_login_pass(encoded_JWT_access_token: auth.Token = Depends(generate_JWT_token_from_login_pass)) -> auth.Token:
     """login form is redirected here
     :returns {"access_token": encoded_JWT_access_token, "token_type": "bearer"}
     :raises HTTPException if authentification failed"""
     try:
-        encoded_JWT_access_token = auth.authenticate_user(form_data.username, form_data.password, db_connection)
-        return Token(access_token=encoded_JWT_access_token)
-    except (user.UserNotFoundException, auth.PasswordDoesNotMatchException) as e:
+        return encoded_JWT_access_token
+    except (user.UserNotFoundException, user_token.PasswordDoesNotMatchException) as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
@@ -80,7 +77,7 @@ def create_user(username: str = Body(..., # required, no default value. = None t
     """creates a new user, returning it as a result"""
     try:
         return user.create_user(username=username,
-                                password_hash=auth.hash_password(password),
+                                password_hash=user_password.hash_password(password),
                                 email=email,
                                 name=name,
                                 surname=surname,
@@ -103,7 +100,7 @@ def update_user_info(user_id: int = Depends(auth.get_current_authenticated_user_
                      db_connection: Connection = Depends(database.get_database_connection)) -> VisibleUserInfo:
     """Update name or surname for user"""
     try:
-        password_hash = auth.hash_password(password) if password else None
+        password_hash = user_password.hash_password(password) if password else None
         return user.update_user(user_id=user_id,
                                 username=username,
                                 password_hash=password_hash,
@@ -111,6 +108,10 @@ def update_user_info(user_id: int = Depends(auth.get_current_authenticated_user_
                                 name=name,
                                 surname=surname,
                                 db_connection=db_connection).user_info
+    except NullInPusswordException as npe:
+        logger.warning(f'Someone trying to use null byte in password')
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail="Null bytes are prohibited in password")
     except user.UserNotFoundException as e:
         logger.info(f'Trying to update non-existent user with user_id={user_id}:'+str(e))
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
