@@ -138,6 +138,7 @@ async def get_all_posts(skip: int = Query(0, ge=0.0, example=0),
     """get all posts"""
     # return post.get_all_posts(db_connection, skip=skip, limit=limit)
     try:
+        # note, that this only works for IO-bound tasks, because of GIL. Use subprocesses for CPU-bound
         posts = await post.get_all_posts_async(db_connection, skip=skip, limit=limit)
         return posts
     except Exception as e:
