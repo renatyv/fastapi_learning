@@ -7,6 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.engine import LegacyCursorResult
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.future import Connection
+from retry import retry
 
 from blog import threadpool_executor
 
@@ -18,6 +19,7 @@ class Post(BaseModel):
     body: str
 
 
+@retry(tries=2, logger=logger)
 def get_all_posts(db_connection: Connection, skip: int = 0, limit: int = 10**6) -> list[Post]:
     """Returns all posts from database. params skip and limit work the same way as for lists"""
     posts = []
