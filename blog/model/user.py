@@ -148,20 +148,20 @@ def update_user(db_connection: Connection,
     """Updates user info in database.
     :returns User object if update was successful
     :raises UserNotFoundException if user_id is invalied"""
-    user_to_update = get_user_by_id(user_id, db_connection)
-    if not user_to_update:
-        raise UserNotFoundException()
-    if username:
-        user_to_update.user_info.username = username
-    if name:
-        user_to_update.user_info.name = name
-    if surname:
-        user_to_update.user_info.surname = surname
-    if email:
-        user_to_update.user_info.email = email
-    if password_hash:
-        user_to_update.password_hash = password_hash
     with db_connection.begin():  # start transaction
+        user_to_update = get_user_by_id(user_id, db_connection)
+        if not user_to_update:
+            raise UserNotFoundException()
+        if username:
+            user_to_update.user_info.username = username
+        if name:
+            user_to_update.user_info.name = name
+        if surname:
+            user_to_update.user_info.surname = surname
+        if email:
+            user_to_update.user_info.email = email
+        if password_hash:
+            user_to_update.password_hash = password_hash
         try:
             statement = text("""UPDATE blog_user 
                                 SET

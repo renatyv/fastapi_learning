@@ -18,10 +18,6 @@ class Post(BaseModel):
     body: str
 
 
-class RandomHuyException(Exception):
-    pass
-
-
 def get_all_posts(db_connection: Connection, skip: int = 0, limit: int = 10**6) -> list[Post]:
     """Returns all posts from database. params skip and limit work the same way as for lists"""
     posts = []
@@ -103,16 +99,16 @@ def update_post(caller_user_id: int, post_id: int, title: Optional[str], body: O
     :returns Post object if update was successful
     :raises PostNotFoundException if post_id is invalied
     :raises NotYourPostException if user_id is wrong"""
-    to_update_post = get_post_by_id(post_id, db_connection)
-    if not to_update_post:
-        raise PostNotFoundException
-    if to_update_post.user_id != caller_user_id:
-        raise NotYourPostException()
-    if title:
-        to_update_post.title = title
-    if body:
-        to_update_post.body = body
     with db_connection.begin(): # start transaction
+        to_update_post = get_post_by_id(post_id, db_connection)
+        if not to_update_post:
+            raise PostNotFoundException
+        if to_update_post.user_id != caller_user_id:
+            raise NotYourPostException()
+        if title:
+            to_update_post.title = title
+        if body:
+            to_update_post.body = body
         try:
             statement = text("""UPDATE blog_post 
                                     SET title = :title, body = :body 
