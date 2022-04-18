@@ -1,6 +1,7 @@
 import sqlite3
 from typing import Optional
 
+from retry import retry
 from sqlalchemy.exc import IntegrityError
 import sqlalchemy.engine
 from pydantic import BaseModel
@@ -64,7 +65,7 @@ def get_user_by_id(user_id: int, db_connection: Connection) -> Optional[User]:
             params = {'user_id': user_id}
             rows = db_connection.execute(statement, **params).fetchall()
         except Exception as e:
-            logger.error(e)
+            logger.exception('Unknown DB query error')
             return None
         else:
             for user_id, username, name, surname, email, password_hash in rows:
@@ -86,7 +87,7 @@ def get_user_by_username(username: str, db_connection: Connection) -> Optional[U
             params = {'username': username}
             rows = db_connection.execute(statement, **params).fetchall()
         except Exception as e:
-            logger.error(e)
+            logger.exception('Unknown DB query error')
             return None
         else:
             for user_id, username, name, surname, email, password_hash in rows:
@@ -126,7 +127,7 @@ def create_user(db_connection: Connection,
         except IntegrityError as ie:
             raise DuplicateUserCreationException(str(ie))
         except Exception as e:
-            logger.error(e)
+            logger.exception('Unknown DB query error')
             raise UnknownException(e)
         else:
             return User(
@@ -138,6 +139,7 @@ class UserNotFoundException(Exception):
     pass
 
 
+@retry(exceptions=IntegrityError)
 def update_user(db_connection: Connection,
                 user_id: int,
                 username: Optional[str] = None,
@@ -180,7 +182,7 @@ def update_user(db_connection: Connection,
                       'user_id': user_id}
             row = db_connection.execute(statement, params).fetchone()
         except Exception as e:
-            logger.error('unknown error: {e}')
+            logger.exception('Unknown DB query error')
             raise UnknownException()
         else:
             if row is None:
@@ -202,7 +204,7 @@ def delete_user(user_id: int, db_connection: Connection):
             result: LegacyCursorResult = db_connection.execute(statement, params)
             deleted_rows = result.rowcount
         except Exception as e:
-            logger.error(e)
+            logger.exception('Unknown DB query error')
             raise UnknownException(e)
         else:
             if deleted_rows == 0:

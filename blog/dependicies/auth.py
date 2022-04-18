@@ -26,7 +26,7 @@ def get_current_authenticated_user_id(token: str = Depends(oauth2_scheme)) -> in
     try:
         return blog.model.auth.user_token.decode_token_to_user_id(token, token_settings)
     except blog.model.auth.user_token.BadTokenException:
-        logger.info('Smth wrong with token')
+        logger.info('Smth wrong with token {}', token)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Could not validate credentials",
                             headers={"WWW-Authenticate": "Bearer"})
@@ -45,7 +45,7 @@ def generate_JWT_token_from_login_pass(form_data: OAuth2PasswordRequestForm = De
                                                                db_connection,
                                                                token_settings))
     except (user.UserNotFoundException, user_token.PasswordDoesNotMatchException) as e:
-        logger.info(f'Failed authentication for username:{form_data.username}')
+        logger.info('Failed authentication for username:{}', form_data.username)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail='wrong username or password')
 

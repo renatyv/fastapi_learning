@@ -52,7 +52,7 @@ def get_post_by_id(post_id: int, db_connection: Connection) -> Optional[Post]:
             params = {'post_id': post_id}
             rows = db_connection.execute(statement, **params).fetchall()
         except Exception as e:
-            logger.error(e)
+            logger.exception('Unknown DB exception')
             return None
         else:
             for post_id, user_id, title, body in rows:
@@ -79,10 +79,10 @@ def create_post(user_id: int, title: str, body: str, db_connection: Connection) 
             post_id = row[0]
         # except (UniqueViolation, sqlite3.IntegrityError) as uve:
         except IntegrityError as ie:
-            logger.debug(f'No user with id={user_id} '+str(ie))
+            logger.debug('No user with id={user_id} ', user_id)
             raise NoSuchUseridException()
         else:
-            logger.debug(f'post with id {(post_id,user_id,title,body)} created')
+            logger.debug('post_id={} for user_id={} is created', post_id, user_id)
             return Post(post_id=post_id, user_id=user_id, title=title, body=body)
 
 
@@ -94,6 +94,7 @@ class NotYourPostException(Exception):
     pass
 
 
+@retry(exceptions=IntegrityError)
 def update_post(caller_user_id: int, post_id: int, title: Optional[str], body: Optional[str], db_connection: Connection) -> Post:
     """updates title or body for the post in db.
     title and body are optional. If they are not set, title and body are not updated
@@ -120,8 +121,11 @@ def update_post(caller_user_id: int, post_id: int, title: Optional[str], body: O
                       'body': to_update_post.body,
                       'post_id': to_update_post.post_id}
             row = db_connection.execute(statement, params).fetchone()
+        except IntegrityError as ie:
+            logger.exception('Should I retry?')
+            raise ie
         except Exception as e:
-            logger.error('unknown error: {e}')
+            logger.exception('Unknown DB query error')
             raise UnknownException
         else:
             if row is None:
@@ -131,6 +135,7 @@ def update_post(caller_user_id: int, post_id: int, title: Optional[str], body: O
                 return Post(post_id=post_id, user_id=caller_user_id, title=title, body=body)
 
 
+@retry(exceptions=IntegrityError)
 def delete_post(caller_user_id:int, post_id: int, db_connection: Connection):
     """Delete post by post_id. Note, that all post posts will be deleted with CASCADE,
     :raises PostNotFoundException if nothing is deleted from database
@@ -147,7 +152,7 @@ def delete_post(caller_user_id:int, post_id: int, db_connection: Connection):
             result: LegacyCursorResult = db_connection.execute(statement, params)
             deleted_rows = result.rowcount
         except Exception as e:
-            logger.error(e)
+            logger.exception('Deleting post_id={} failed. Probably should retry.', post_id)
             raise UnknownException(e)
         else:
             if deleted_rows == 0:

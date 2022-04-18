@@ -19,6 +19,6 @@ def verify_password(plaintext_password: str, correct_password_hash: str) -> bool
     try:
         return _pwd_context.verify(plaintext_password, correct_password_hash)
     except Exception as e:
-        logger.error(e)
+        logger.exception("can't verify password")
         return False
 
