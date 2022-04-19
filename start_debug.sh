@@ -2,10 +2,9 @@ echo 'activating venv'
 source venv/bin/activate
 
 echo "Running code style checks"
-# line width is ignored
 flake8 blog/ --max-line-length 120  --statistics
-flake8 tests/ --ignore E501 --statistics
-flake8 tests_api/ --ignore E501 --statistics
+flake8 tests/ --max-line-length 120  --statistics
+flake8 tests_api/ --max-line-length 120  --statistics
 
 echo 'running unit tests'
 # python3 -m is used instead of 'pytest tests/' to include source directory into python path
