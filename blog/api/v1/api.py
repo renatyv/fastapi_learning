@@ -1,8 +1,7 @@
 from typing import Optional, Any
 
 from fastapi import Query, Path, Body, HTTPException, Depends, APIRouter
-from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import EmailStr, BaseModel
+from pydantic import EmailStr
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import AsyncConnection
 from starlette import status
@@ -25,16 +24,16 @@ async def access_token_from_login_pass(
         encoded_JWT_access_token: auth.Token = Depends(generate_JWT_token_from_login_pass)) -> auth.Token:
     """login form is redirected here
     :returns {"access_token": encoded_JWT_access_token, "token_type": "bearer"}
-    :raises HTTPException if authentification failed"""
+    :raises HTTPException if authentication failed"""
     try:
         return encoded_JWT_access_token
-    except (user.UserNotFoundException, user_token.PasswordDoesNotMatchException) as e:
+    except (user.UserNotFoundException, user_token.PasswordDoesNotMatchException):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    except Exception as e:
+    except Exception:
         logger.exception('Unknown exception')
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -44,28 +43,30 @@ async def get_all_users(skip: int = Query(0, ge=0.0, example=0),
                         limit: int = 10,
                         async_db_connection: AsyncConnection = Depends(database.get_async_db_connection)) -> Any:
     """get list of all users
+    :param async_db_connection:
     :param skip. skip >= 0. optional
     :param limit. default 10. optional
-    :param auth_token OAuth2 token
     """
-    users = []
     try:
         users = await user.get_all_users_async(async_db_connection, skip, limit)
-    except Exception as e:
+        return [u.user_info for u in users]
+    except Exception:
         logger.exception('Unknown exception')
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    return [u.user_info for u in users]
 
 
-@api_router.get("/users/{user_id}", status_code=status.HTTP_302_FOUND, response_model=Optional[user.VisibleUserInfo])
+@api_router.get("/users/{user_id}",
+                status_code=status.HTTP_302_FOUND,
+                response_model=Optional[user.VisibleUserInfo])
 def get_user(user_id: int = Path(..., ge=0.0),
              db_connection: Connection = Depends(database.get_database_connection)) -> Optional[user.VisibleUserInfo]:
     """get specific user
+    :param db_connection:
     :param user_id is required, greater than 0
     """
     try:
         found_user = user.get_user_by_id(user_id, db_connection)
-    except Exception as e:
+    except Exception:
         logger.exception('Unknown exception')
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     if found_user:
@@ -96,7 +97,7 @@ def create_user(username: str = Body(...,  # required, no default value. = None 
         logger.info('Trying to create duplicate username:{}', username)
         raise HTTPException(status_code=status.HTTP_304_NOT_MODIFIED,
                             detail=str(e))
-    except Exception as e:
+    except Exception:
         logger.exception('Unknown exception')
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -121,15 +122,15 @@ def update_user_info(user_id: int = Depends(auth.get_current_authenticated_user_
                                 name=name,
                                 surname=surname,
                                 db_connection=db_connection).user_info
-    except NullInPusswordException as npe:
+    except NullInPusswordException:
         logger.warning('Someone trying to use null byte in password')
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="Null bytes are prohibited in password")
-    except user.UserNotFoundException as e:
+    except user.UserNotFoundException:
         logger.info('Trying to update non-existent user with user_id={user_id}:', user_id)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f'user with user_id={user_id} not found')
-    except Exception as e:
+    except Exception:
         logger.exception('Unknown exception')
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -141,10 +142,10 @@ def delete_user(user_id: int = Depends(auth.get_current_authenticated_user_id),
     :raises HTTPException if user is not found, nothing is deleted"""
     try:
         user.delete_user(user_id, db_connection)
-    except user.UserNotFoundException as e:
+    except user.UserNotFoundException:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f'user with user_id={user_id} not found')
-    except Exception as e:
+    except Exception:
         logger.exception('Unknown exception')
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -159,21 +160,21 @@ async def get_all_posts(skip: int = Query(0, ge=0.0, example=0),
         # note, that this only works for IO-bound tasks, because of GIL. Use subprocesses for CPU-bound
         posts = await post.get_all_posts_async(db_connection, skip=skip, limit=limit)
         return posts
-    except Exception as e:
+    except Exception:
         logger.exception('Unknown exception')
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 
 @api_router.get("/posts/{post_id}", status_code=status.HTTP_302_FOUND, response_model=post.Post)
 def get_post(post_id: int = Path(..., ge=0.0),  # required, no default value. = None to make optional
              db_connection: Connection = Depends(database.get_database_connection)):
     """get specific post
+    :param db_connection:
     :param post_id path param. post_id >= 0. required.
     """
     try:
         found_post = post.get_post_by_id(post_id, db_connection)
-    except Exception as e:
+    except Exception:
         logger.exception('Unknown exception')
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     if found_post:
@@ -190,14 +191,13 @@ def create_post(user_id: int = Depends(auth.get_current_authenticated_user_id),
                 body: str = Body(..., min_length=0,
                                  max_length=10000),
                 db_connection: Connection = Depends(database.get_database_connection)) -> post.Post:
-    """create new post
-    :param user_id: may exist in users. If it does not, no error is returned, post is created"""
+    """create new post"""
     try:
         return post.create_post(user_id, title, body, db_connection)
-    except post.NoSuchUseridException as e:
+    except post.NoSuchUseridException:
         logger.debug('User not found')
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='No user with such user_id')
-    except Exception as e:
+    except Exception:
         logger.exception('Unknown exception')
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -217,11 +217,11 @@ def update_post_info(post_id: int = Path(...),
         logger.info('Trying to update post {} by non-owner {}', post_id, user_id)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail='not your post_id')
-    except post.PostNotFoundException as e:
+    except post.PostNotFoundException:
         logger.info('Trying to update non-existent post with post_id={}', post_id)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f'Post with post_id={post_id} not found')
-    except Exception as e:
+    except Exception:
         logger.exception('Unknown exception')
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -238,10 +238,10 @@ def delete_post(post_id: int,
         logger.info('Trying to delete post {} by non-owner {}', post_id, user_id)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail='not your post_id')
-    except post.PostNotFoundException as e:
+    except post.PostNotFoundException:
         logger.warning('Deleting non-existent post {}', post_id)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f'post with post_id={post_id} not found')
-    except Exception as e:
+    except Exception:
         logger.exception('Unknown exception')
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)

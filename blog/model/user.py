@@ -1,4 +1,3 @@
-import sqlite3
 from typing import Optional
 
 from retry import retry
@@ -29,12 +28,19 @@ def get_all_users(db_connection: Connection, skip: int = 0, limit: int = 10 ** 6
     users = []
     with db_connection.begin():  # within transaction
         statement = text(
-            'SELECT user_id, username, name, surname, email, password_hash FROM blog_user LIMIT :limit OFFSET :skip')
+            """SELECT
+            user_id, username, name, surname, email, password_hash
+            FROM blog_user
+            LIMIT :limit OFFSET :skip""")
         params = {'skip': skip, 'limit': limit}
         rows: list[Row] = db_connection.execute(statement, **params).all()
         for user_id, username, name, surname, email, password_hash in rows:
             users.append(User(
-                user_info=VisibleUserInfo(user_id=user_id, username=username, name=name, surname=surname, email=email),
+                user_info=VisibleUserInfo(user_id=user_id,
+                                          username=username,
+                                          name=name,
+                                          surname=surname,
+                                          email=email),
                 password_hash=password_hash))
     return users
 
@@ -42,14 +48,21 @@ def get_all_users(db_connection: Connection, skip: int = 0, limit: int = 10 ** 6
 async def get_all_users_async(db_connection: AsyncConnection, skip: int = 0, limit: int = 10 ** 6) -> list[User]:
     """return 'limit' number users starting from 'skip'"""
     users = []
-    statement = text('SELECT user_id, username, name, surname, email, password_hash FROM blog_user LIMIT :limit OFFSET :skip')
+    statement = text("""SELECT
+        user_id, username, name, surname, email, password_hash
+    FROM blog_user
+    LIMIT :limit OFFSET :skip""")
     params = {'skip': skip, 'limit': limit}
     async with db_connection.begin():  # within transaction
         result: Result = await db_connection.execute(statement, parameters=params)
         rows = result.all()
         for user_id, username, name, surname, email, password_hash in rows:
             users.append(User(
-                user_info=VisibleUserInfo(user_id=user_id, username=username, name=name, surname=surname, email=email),
+                user_info=VisibleUserInfo(user_id=user_id,
+                                          username=username,
+                                          name=name,
+                                          surname=surname,
+                                          email=email),
                 password_hash=password_hash))
     return users
 
@@ -61,15 +74,20 @@ def get_user_by_id(user_id: int, db_connection: Connection) -> Optional[User]:
     with db_connection.begin():  # within transaction
         try:
             statement = text(
-                """SELECT user_id, username, name, surname, email, password_hash FROM blog_user WHERE user_id = :user_id""")
+                """SELECT user_id, username, name, surname, email, password_hash
+                FROM blog_user
+                WHERE user_id = :user_id""")
             params = {'user_id': user_id}
             rows = db_connection.execute(statement, **params).fetchall()
-        except Exception as e:
+        except Exception:
             logger.exception('Unknown DB query error')
             return None
         else:
             for user_id, username, name, surname, email, password_hash in rows:
-                return User(user_info=VisibleUserInfo(user_id=user_id, username=username, name=name, surname=surname,
+                return User(user_info=VisibleUserInfo(user_id=user_id,
+                                                      username=username,
+                                                      name=name,
+                                                      surname=surname,
                                                       email=email),
                             password_hash=password_hash)
 
@@ -86,12 +104,15 @@ def get_user_by_username(username: str, db_connection: Connection) -> Optional[U
                                 WHERE username = :username""")
             params = {'username': username}
             rows = db_connection.execute(statement, **params).fetchall()
-        except Exception as e:
+        except Exception:
             logger.exception('Unknown DB query error')
             return None
         else:
             for user_id, username, name, surname, email, password_hash in rows:
-                return User(user_info=VisibleUserInfo(user_id=user_id, username=username, name=name, surname=surname,
+                return User(user_info=VisibleUserInfo(user_id=user_id,
+                                                      username=username,
+                                                      name=name,
+                                                      surname=surname,
                                                       email=email),
                             password_hash=password_hash)
             return None
@@ -131,7 +152,11 @@ def create_user(db_connection: Connection,
             raise UnknownException(e)
         else:
             return User(
-                user_info=VisibleUserInfo(user_id=user_id, username=username, name=name, surname=surname, email=email),
+                user_info=VisibleUserInfo(user_id=user_id,
+                                          username=username,
+                                          name=name,
+                                          surname=surname,
+                                          email=email),
                 password_hash=password_hash)
 
 
@@ -149,7 +174,7 @@ def update_user(db_connection: Connection,
                 password_hash: Optional[str] = None) -> User:
     """Updates user info in database.
     :returns User object if update was successful
-    :raises UserNotFoundException if user_id is invalied"""
+    :raises UserNotFoundException if user_id is invalid"""
     with db_connection.begin():  # start transaction
         user_to_update = get_user_by_id(user_id, db_connection)
         if not user_to_update:
@@ -165,15 +190,15 @@ def update_user(db_connection: Connection,
         if password_hash:
             user_to_update.password_hash = password_hash
         try:
-            statement = text("""UPDATE blog_user 
+            statement = text("""UPDATE blog_user
                                 SET
                                     username = :username,
                                     name = :name,
                                     surname = :surname,
                                     email = :email,
-                                    password_hash = :password_hash 
+                                    password_hash = :password_hash
                                 WHERE user_id = :user_id
-                                RETURNING username, name, surname, email, password_hash """)
+                                RETURNING username, name, surname, email, password_hash""")
             params = {'username': user_to_update.user_info.username,
                       'name': user_to_update.user_info.name,
                       'surname': user_to_update.user_info.surname,
@@ -181,7 +206,7 @@ def update_user(db_connection: Connection,
                       'password_hash': user_to_update.password_hash,
                       'user_id': user_id}
             row = db_connection.execute(statement, params).fetchone()
-        except Exception as e:
+        except Exception:
             logger.exception('Unknown DB query error')
             raise UnknownException()
         else:
@@ -189,7 +214,10 @@ def update_user(db_connection: Connection,
                 raise UnknownException()
             else:
                 username, name, surname, email, password_hash = row
-                return User(user_info=VisibleUserInfo(user_id=user_id, username=username, name=name, surname=surname,
+                return User(user_info=VisibleUserInfo(user_id=user_id,
+                                                      username=username,
+                                                      name=name,
+                                                      surname=surname,
                                                       email=email),
                             password_hash=password_hash)
 

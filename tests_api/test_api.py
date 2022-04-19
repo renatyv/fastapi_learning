@@ -1,15 +1,8 @@
-import json
-from typing import Dict
-
 import pytest
 import requests
-from loguru import logger
 from starlette import status
 
-API_HOST = '127.0.0.1'
-API_PORT = 8100
-API_ROOT = '/api/v1'
-API_URL = f'http://{API_HOST}:{API_PORT}{API_ROOT}'
+API_URL = 'http://127.0.0.1:8100/api/v1'
 
 
 def test_get_all_users():
@@ -58,8 +51,8 @@ def test_update_post(authorization_header_userid_2):
 
 def test_create_delete_post(authorization_header_userid_2):
     response = requests.post(f"{API_URL}/posts/",
-                              json={'title': 'test title',
-                                    'body': 'test body'},
+                             json={'title': 'test title',
+                                   'body': 'test body'},
                              headers=authorization_header_userid_2)
     assert response.status_code == status.HTTP_201_CREATED
     post_id: str = response.json().get('post_id')
@@ -87,5 +80,5 @@ def test_create_auth_delete_user():
     token = response.json().get('access_token')
     # delete user
     response = requests.delete(f'{API_URL}/users',
-                               headers={f'Authorization': f'Bearer {token}'})
+                               headers={'Authorization': f'Bearer {token}'})
     assert response.status_code == 200

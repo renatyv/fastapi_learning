@@ -1,4 +1,4 @@
-from typing import Generator
+from typing import Generator, AsyncGenerator
 from pydantic import BaseSettings
 
 import sqlalchemy
@@ -17,7 +17,6 @@ class DatabaseSettings(BaseSettings):
 
 db_settings = DatabaseSettings()
 
-
 # holds connection pool
 # put echo=True to log all queries
 engine = sqlalchemy.create_engine(f"postgresql://"
@@ -25,13 +24,12 @@ engine = sqlalchemy.create_engine(f"postgresql://"
                                   f"{db_settings.PSQL_PASSWORD}"
                                   f"@{db_settings.PSQL_URL}/{db_settings.PSQL_DB}")
 
-
 # holds connection pool
 # put echo=True to log all queries
 async_engine = create_async_engine(f"postgresql+asyncpg://"
-                                  f"{db_settings.PSQL_USER}:"
-                                  f"{db_settings.PSQL_PASSWORD}"
-                                  f"@{db_settings.PSQL_URL}/{db_settings.PSQL_DB}")
+                                   f"{db_settings.PSQL_USER}:"
+                                   f"{db_settings.PSQL_PASSWORD}"
+                                   f"@{db_settings.PSQL_URL}/{db_settings.PSQL_DB}")
 
 
 def get_database_connection() -> Generator:
@@ -39,14 +37,14 @@ def get_database_connection() -> Generator:
     connection: Connection = engine.connect()
     try:
         yield connection
-    finally: # executed when response is sent
+    finally:  # executed when response is sent
         connection.close()
 
 
-async def get_async_db_connection() -> Generator:
+async def get_async_db_connection() -> AsyncGenerator:
     """returns async connection. Use .begin to start transaction"""
     connection: AsyncConnection = await async_engine.connect()
     try:
         yield connection
-    finally: # executed when response is sent
+    finally:  # executed when response is sent
         await connection.close()

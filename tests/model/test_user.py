@@ -1,12 +1,7 @@
 import pytest
 import sqlalchemy as sqlalchemy
-from sqlalchemy.engine import Connection, LegacyCursorResult, Result, Row
-from sqlalchemy.ext.asyncio import AsyncConnection, create_async_engine
-
+from sqlalchemy.engine import Connection
 import blog.model.user as user
-
-
-# import os
 
 
 CREATE_USER_TABLE = """CREATE TABLE blog_user(
@@ -97,5 +92,5 @@ def test_delete_inexistent_user(empty_inmemory_table_connection):
 
 
 def test_delete_user(three_users_inmemory_table_connection):
-    deleted_user = user.delete_user(user_id=1, db_connection=three_users_inmemory_table_connection)
+    user.delete_user(user_id=1, db_connection=three_users_inmemory_table_connection)
     assert user.get_user_by_id(user_id=1, db_connection=three_users_inmemory_table_connection) is None

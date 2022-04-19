@@ -1,9 +1,8 @@
-from pydantic import BaseSettings
 from datetime import datetime, timedelta
 from jose import jwt, JWTError, ExpiredSignatureError
 from jose.exceptions import JWTClaimsError
 from loguru import logger
-from pydantic import BaseSettings, BaseModel
+from pydantic import BaseSettings
 from sqlalchemy.future import Connection
 
 from blog.model import user

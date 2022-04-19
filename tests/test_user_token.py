@@ -1,6 +1,5 @@
 import pytest
 import sqlalchemy
-from sqlalchemy import text
 from sqlalchemy.future import Connection
 
 import blog.model.auth.user_token as user_token

@@ -3,6 +3,7 @@ from passlib.context import CryptContext
 
 _pwd_context = CryptContext(schemes=["md5_crypt"], deprecated="auto")
 
+
 class NullInPusswordException(Exception):
     pass
 
@@ -18,7 +19,6 @@ def verify_password(plaintext_password: str, correct_password_hash: str) -> bool
     """returns True if password's hash mathches."""
     try:
         return _pwd_context.verify(plaintext_password, correct_password_hash)
-    except Exception as e:
+    except Exception:
         logger.exception("can't verify password")
         return False
-

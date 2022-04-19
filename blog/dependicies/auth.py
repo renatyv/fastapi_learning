@@ -44,8 +44,7 @@ def generate_JWT_token_from_login_pass(form_data: OAuth2PasswordRequestForm = De
                                                                form_data.password,
                                                                db_connection,
                                                                token_settings))
-    except (user.UserNotFoundException, user_token.PasswordDoesNotMatchException) as e:
+    except (user.UserNotFoundException, user_token.PasswordDoesNotMatchException):
         logger.info('Failed authentication for username:{}', form_data.username)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail='wrong username or password')
-
