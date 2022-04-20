@@ -1,6 +1,7 @@
 # FastAPI blog API
 ### Goals
 Project goal is to learn technologies:
+* Python
 * REST API
 * Unit testing
 * Relational database
@@ -23,6 +24,13 @@ and [tutorial from christophergs.com](https://christophergs.com/tutorials/ultima
   * user can not update or delete another user
   * user can not update or delete another user's post
   * You need to be logged in to create a post
+
+## Dependencies
+* Python 3.9, may work on 3.7
+* Poetry for python dependancies
+* Postgres
+* Docker, docker-compose
+* yoyo-migrations
 
 ### Project structure
 
@@ -84,14 +92,13 @@ User and Post read/create is tested using pytest.
 
 Run unit tests:
 
-```python3 -m pytest --no-header --tb=no tests/```
+```poetry run pytest tests/```
 
 Run api (integration) tests:
 
-```python3 -m pytest --no-header --tb=no tests_api/```
+```poetry run pytest --asyncio-mode=strict tests_api/```
 
 Comments:
-* ```python3 -m``` is used instead of 'pytest tests_unit/' to include source directory into python path
 * ```--tb=no```  (to traceback) allows to hide long stack traces if exception raised when running test
 
 ## Database
