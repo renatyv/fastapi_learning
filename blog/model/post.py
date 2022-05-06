@@ -7,10 +7,8 @@ from sqlalchemy import text
 from sqlalchemy.engine import LegacyCursorResult
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.future import Connection
+from sqlalchemy.ext.asyncio import AsyncConnection
 from retry import retry
-
-from blog import threadpool_executor
-
 
 class Post(BaseModel):
     post_id: int
@@ -20,31 +18,24 @@ class Post(BaseModel):
 
 
 @retry(tries=2, logger=logger)
-def get_all_posts(db_connection: Connection, skip: int = 0, limit: int = 10 ** 6) -> list[Post]:
-    """Returns all posts from database. params skip and limit work the same way as for lists"""
+async def get_all_posts_async(db_connection: AsyncConnection,
+                              skip: int = 0, limit: int = 10 ** 6) -> list[Post]:
+    """Returns all posts from database asynchronously.
+    params skip and limit work the same way as for lists"""
     posts = []
-    with db_connection.begin():  # within transaction
-        statement = text("""SELECT
-                                post_id, user_id, title, body
-                            FROM blog_post
-                            LIMIT :limit OFFSET :skip""")
-        params = {'skip': skip, 'limit': limit}
-        rows = db_connection.execute(statement, **params).fetchall()
+    statement = text("""SELECT
+                            post_id, user_id, title, body
+                        FROM blog_post
+                        LIMIT :limit OFFSET :skip""")
+    params = {'skip': skip, 'limit': limit}
+    async with db_connection.begin():  # within transaction
+        result = await db_connection.execute(statement, parameters=params)
+        rows = result.fetchall()
         for post_id, user_id, title, body in rows:
             posts.append(Post(user_id=user_id,
                               post_id=post_id,
                               title=title,
                               body=body))
-    return posts
-
-
-async def get_all_posts_async(db_connection: Connection,
-                              skip: int = 0, limit: int = 10 ** 6) -> list[Post]:
-    """Returns all posts from database asynchronously.
-    params skip and limit work the same way as for lists"""
-    posts = await threadpool_executor.run_asynchonously(get_all_posts,
-                                                        db_connection,
-                                                        skip=skip, limit=limit)
     return posts
 
 

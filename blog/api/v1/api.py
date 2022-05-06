@@ -153,7 +153,7 @@ def delete_user(user_id: int = Depends(auth.get_current_authenticated_user_id),
 @api_router.get("/posts", status_code=status.HTTP_200_OK, response_model=list[post.Post])
 async def get_all_posts(skip: int = Query(0, ge=0.0, example=0),
                         limit: int = 10,
-                        db_connection: Connection = Depends(database.get_database_connection)) -> list[post.Post]:
+                        db_connection: AsyncConnection = Depends(database.get_async_db_connection)) -> list[post.Post]:
     """get all posts"""
     # return post.get_all_posts(db_connection, skip=skip, limit=limit)
     try:
