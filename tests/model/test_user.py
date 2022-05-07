@@ -36,12 +36,6 @@ def three_users_inmemory_table_connection(empty_inmemory_table_connection) -> Co
     return filled_table_conn
 
 
-def test_get_all_users(three_users_inmemory_table_connection):
-    """assuming the test db has more than one row in blog_user table"""
-    users = user.get_all_users(three_users_inmemory_table_connection)
-    assert len(users) > 0
-
-
 def test_get_user_1(three_users_inmemory_table_connection):
     # user with this ID should exist
     user_id = 1

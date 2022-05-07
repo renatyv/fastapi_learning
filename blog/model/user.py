@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 import sqlalchemy.engine
 from pydantic import BaseModel
 from sqlalchemy import text
-from sqlalchemy.engine import Connection, LegacyCursorResult, Result, Row
+from sqlalchemy.engine import Connection, LegacyCursorResult, Result
 from sqlalchemy.ext.asyncio import AsyncConnection
 from loguru import logger
 
