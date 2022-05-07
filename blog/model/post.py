@@ -10,6 +10,7 @@ from sqlalchemy.future import Connection
 from sqlalchemy.ext.asyncio import AsyncConnection
 from retry import retry
 
+
 class Post(BaseModel):
     post_id: int
     user_id: int
@@ -157,7 +158,7 @@ def delete_post(caller_user_id: int, post_id: int, db_connection: Connection):
                 WHERE post_id = :post_id""")
             params = {'post_id': post_id}
             result: LegacyCursorResult = db_connection.execute(statement, params)
-            deleted_rows = result.rowcount
+            deleted_rows: int = result.rowcount
         except Exception as e:
             logger.exception('Deleting post_id={} failed. Probably should retry.', post_id)
             raise UnknownException(e)

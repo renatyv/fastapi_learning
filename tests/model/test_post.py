@@ -33,12 +33,6 @@ def three_posts_inmemory_table_connection(empty_inmemory_table_connection) -> Co
     return filled_table_conn
 
 
-def test_get_all_posts(three_posts_inmemory_table_connection):
-    posts = post.get_all_posts(three_posts_inmemory_table_connection)
-    assert len(posts) == 3
-    assert posts[2].user_id == 2 and posts[2].title == 'Order #2'
-
-
 def test_get_post_by_post_id(three_posts_inmemory_table_connection):
     first_post = post.get_post_by_id(1, three_posts_inmemory_table_connection)
     assert first_post.post_id == 1 and first_post.user_id == 1 and first_post.title == 'Migrations with yoyo'
