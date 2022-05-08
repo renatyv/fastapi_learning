@@ -51,3 +51,9 @@ async def three_users_inmemory_table_connection_async(empty_inmemory_table_conne
 async def test_all_users_async(three_users_inmemory_table_connection_async):
     users = await user.get_all_users_async(three_users_inmemory_table_connection_async)
     assert len(users) == 3
+
+
+@pytest.mark.asyncio
+async def test_get_by_name(three_users_inmemory_table_connection_async):
+    found_user = await user.get_user_by_username('renatyv', three_users_inmemory_table_connection_async)
+    assert found_user.user_info.email == 'renatyv@gmail.com'

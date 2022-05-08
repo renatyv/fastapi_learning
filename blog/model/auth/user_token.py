@@ -3,7 +3,7 @@ from jose import jwt, JWTError, ExpiredSignatureError
 from jose.exceptions import JWTClaimsError
 from loguru import logger
 from pydantic import BaseSettings
-from sqlalchemy.future import Connection
+from sqlalchemy.ext.asyncio import AsyncConnection
 
 from blog.model import user
 from blog.model.auth import user_password
@@ -20,12 +20,15 @@ class PasswordDoesNotMatchException(Exception):
     pass
 
 
-def authenticate_user(username: str, password: str, db_connection: Connection, token_settings: TokenSettings) -> str:
+async def authenticate_user(username: str,
+                            password: str,
+                            db_connection: AsyncConnection,
+                            token_settings: TokenSettings) -> str:
     """find user in database and compare password hashes
     :raises UserNotFoundException
     :raises PasswordDoesNotMatchException
     :returns encoded JWT token"""
-    found_user = user.get_user_by_username(username=username, db_connection=db_connection)
+    found_user = await user.get_user_by_username(username, db_connection)
     if not found_user:
         raise user.UserNotFoundException()
     if not user_password.verify_password(password, found_user.password_hash):

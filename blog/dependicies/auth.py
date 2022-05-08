@@ -3,7 +3,7 @@ import os
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
-from sqlalchemy.future import Connection
+from sqlalchemy.ext.asyncio import AsyncConnection
 from loguru import logger
 from starlette import status
 
@@ -37,13 +37,15 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 
-def generate_JWT_token_from_login_pass(form_data: OAuth2PasswordRequestForm = Depends(),
-                                       db_connection: Connection = Depends(database.get_database_connection)) -> Token:
+async def generate_JWT_token_from_login_pass(form_data: OAuth2PasswordRequestForm = Depends(),
+                                             db_connection: AsyncConnection = Depends(
+                                                 database.get_async_db_connection)) -> Token:
     try:
-        return Token(access_token=user_token.authenticate_user(form_data.username,
-                                                               form_data.password,
-                                                               db_connection,
-                                                               token_settings))
+        access_token = await user_token.authenticate_user(form_data.username,
+                                                          form_data.password,
+                                                          db_connection,
+                                                          token_settings)
+        return Token(access_token=access_token)
     except (user.UserNotFoundException, user_token.PasswordDoesNotMatchException):
         logger.info('Failed authentication for username:{}', form_data.username)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,

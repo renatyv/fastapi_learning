@@ -43,11 +43,6 @@ def test_get_user_1(three_users_inmemory_table_connection):
     assert found_user.user_info.user_id == user_id
 
 
-def test_get_by_name(three_users_inmemory_table_connection):
-    found_user = user.get_user_by_username('renatyv', three_users_inmemory_table_connection)
-    assert found_user.user_info.email == 'renatyv@gmail.com'
-
-
 def test_create_new_user(empty_inmemory_table_connection):
     # keyword arguments are used for creation because of Pydantic
     created_user = user.create_user(empty_inmemory_table_connection,

@@ -70,18 +70,19 @@ def get_user_by_id(user_id: int, db_connection: Connection) -> Optional[User]:
                             password_hash=password_hash)
 
 
-def get_user_by_username(username: str, db_connection: Connection) -> Optional[User]:
+async def get_user_by_username(username: str, db_connection: AsyncConnection) -> Optional[User]:
     """find user by his username
     :returns User object, if user is found in database
     :returns None if user is not found"""
-    with db_connection.begin():  # within transaction
+    async with db_connection.begin():  # within transaction
         try:
             statement = text("""SELECT
                                     user_id, username, name, surname, email, password_hash
                                 FROM blog_user
                                 WHERE username = :username""")
             params = {'username': username}
-            rows = db_connection.execute(statement, **params).fetchall()
+            result = await db_connection.execute(statement, parameters=params)
+            rows = result.fetchall()
         except Exception:
             logger.exception('Unknown DB query error')
             return None
