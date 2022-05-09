@@ -40,25 +40,6 @@ async def get_all_posts_async(db_connection: AsyncConnection,
     return posts
 
 
-def get_post_by_id(post_id: int, db_connection: Connection) -> Optional[Post]:
-    """filter posts by post_id"""
-    logger.debug(f'Looking for post {post_id}')
-    with db_connection.begin():  # within transaction
-        try:
-            statement = text("""SELECT post_id, user_id, title, body
-            FROM blog_post
-            WHERE post_id = :post_id""")
-            params = {'post_id': post_id}
-            rows = db_connection.execute(statement, **params).fetchall()
-        except Exception:
-            logger.exception('Unknown DB exception')
-            return None
-        else:
-            for post_id, user_id, title, body in rows:
-                return Post(post_id=post_id, user_id=user_id, title=title, body=body)
-            return None
-
-
 async def get_post_by_id_async(post_id: int, db_connection: AsyncConnection) -> Optional[Post]:
     """filter posts by post_id"""
     logger.debug(f'Looking for post {post_id}')

@@ -33,11 +33,6 @@ def three_posts_inmemory_table_connection(empty_inmemory_table_connection) -> Co
     return filled_table_conn
 
 
-def test_get_post_by_post_id(three_posts_inmemory_table_connection):
-    first_post = post.get_post_by_id(1, three_posts_inmemory_table_connection)
-    assert first_post.post_id == 1 and first_post.user_id == 1 and first_post.title == 'Migrations with yoyo'
-
-
 def test_create_new_post(empty_inmemory_table_connection):
     new_post = post.create_post(user_id=1, title='Life is going well',
                                 body='For me', db_connection=empty_inmemory_table_connection)

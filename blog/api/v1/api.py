@@ -166,14 +166,14 @@ async def get_all_posts(skip: int = Query(0, ge=0.0, example=0),
 
 
 @api_router.get("/posts/{post_id}", status_code=status.HTTP_302_FOUND, response_model=post.Post)
-def get_post(post_id: int = Path(..., ge=0.0),  # required, no default value. = None to make optional
-             db_connection: Connection = Depends(database.get_database_connection)):
+async def get_post(post_id: int = Path(..., ge=0.0),  # required, no default value. = None to make optional
+                   db_connection: AsyncConnection = Depends(database.get_async_db_connection)):
     """get specific post
     :param db_connection:
     :param post_id path param. post_id >= 0. required.
     """
     try:
-        found_post = post.get_post_by_id(post_id, db_connection)
+        found_post = await post.get_post_by_id_async(post_id, db_connection)
     except Exception:
         logger.exception('Unknown exception')
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
