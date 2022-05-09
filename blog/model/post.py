@@ -62,21 +62,20 @@ def get_post_by_id(post_id: int, db_connection: Connection) -> Optional[Post]:
 async def get_post_by_id_async(post_id: int, db_connection: AsyncConnection) -> Optional[Post]:
     """filter posts by post_id"""
     logger.debug(f'Looking for post {post_id}')
-    async with db_connection.begin():  # within transaction
-        try:
-            statement = text("""SELECT post_id, user_id, title, body
-            FROM blog_post
-            WHERE post_id = :post_id""")
-            params = {'post_id': post_id}
-            result = await db_connection.execute(statement, parameters=params)
-            rows = result.fetchall()
-        except Exception:
-            logger.exception('Unknown DB exception')
-            return None
-        else:
-            for post_id, user_id, title, body in rows:
-                return Post(post_id=post_id, user_id=user_id, title=title, body=body)
-            return None
+    try:
+        statement = text("""SELECT post_id, user_id, title, body
+        FROM blog_post
+        WHERE post_id = :post_id""")
+        params = {'post_id': post_id}
+        result = await db_connection.execute(statement, parameters=params)
+        rows = result.fetchall()
+    except Exception:
+        logger.exception('Unknown DB exception')
+        return None
+    else:
+        for post_id, user_id, title, body in rows:
+            return Post(post_id=post_id, user_id=user_id, title=title, body=body)
+        return None
 
 
 class UnknownException(Exception):
@@ -117,16 +116,16 @@ class NotYourPostException(Exception):
 
 
 @retry(exceptions=IntegrityError)
-def update_post(caller_user_id: int, post_id: int, title: Optional[str], body: Optional[str],
-                db_connection: Connection) -> Post:
+async def update_post(caller_user_id: int, post_id: int, title: Optional[str], body: Optional[str],
+                      db_connection: AsyncConnection) -> Post:
     """updates title or body for the post in db.
     title and body are optional. If they are not set, title and body are not updated
     :param caller_user_id who requested to update post
     :returns Post object if update was successful
     :raises PostNotFoundException if post_id is invalid
     :raises NotYourPostException if user_id is wrong"""
-    with db_connection.begin():  # start transaction
-        to_update_post = get_post_by_id(post_id, db_connection)
+    async with db_connection.begin():  # start transaction
+        to_update_post = await get_post_by_id_async(post_id, db_connection)
         if not to_update_post:
             raise PostNotFoundException
         if to_update_post.user_id != caller_user_id:
@@ -143,7 +142,8 @@ def update_post(caller_user_id: int, post_id: int, title: Optional[str], body: O
             params = {'title': to_update_post.title,
                       'body': to_update_post.body,
                       'post_id': to_update_post.post_id}
-            row = db_connection.execute(statement, params).fetchone()
+            result = await db_connection.execute(statement, parameters=params)
+            row = result.fetchone()
         except IntegrityError as ie:
             logger.exception('Should I retry?')
             raise ie
@@ -170,19 +170,18 @@ async def delete_post_async(caller_user_id: int, post_id: int, db_connection: As
         raise PostNotFoundException()
     if to_delete_post.user_id != caller_user_id:
         raise NotYourPostException()
-    async with db_connection.begin():  # within transaction
-        try:
-            statement = text("""DELETE FROM
-                blog_post
-                WHERE post_id = :post_id""")
-            params = {'post_id': post_id}
-            result: LegacyCursorResult = await db_connection.execute(statement, params)
-            deleted_rows: int = result.rowcount
-        except Exception as e:
-            logger.exception('Deleting post_id={} failed. Probably should retry.', post_id)
-            raise UnknownException(e)
-        else:
-            if deleted_rows == 0:
-                raise PostNotFoundException()
-            if deleted_rows > 1:
-                logger.error(f'Many posts with post_id={post_id} were deleted')
+    try:
+        statement = text("""DELETE FROM
+            blog_post
+            WHERE post_id = :post_id""")
+        params = {'post_id': post_id}
+        result: LegacyCursorResult = await db_connection.execute(statement, params)
+        deleted_rows: int = result.rowcount
+    except Exception as e:
+        logger.exception('Deleting post_id={} failed. Probably should retry.', post_id)
+        raise UnknownException(e)
+    else:
+        if deleted_rows == 0:
+            raise PostNotFoundException()
+        if deleted_rows > 1:
+            logger.error(f'Many posts with post_id={post_id} were deleted')

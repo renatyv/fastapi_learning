@@ -72,3 +72,26 @@ async def test_delete_user(three_posts_inmemory_table_connection: AsyncConnectio
 async def test_delete_unauthorized_user(three_posts_inmemory_table_connection: AsyncConnection):
     with pytest.raises(post.NotYourPostException):
         await post.delete_post_async(caller_user_id=2, post_id=1, db_connection=three_posts_inmemory_table_connection)
+
+
+@pytest.mark.asyncio
+async def test_update_nonexistent_post(empty_inmemory_table_connection):
+    with pytest.raises(post.PostNotFoundException):
+        await post.update_post(1, 1, 'title', 'body', empty_inmemory_table_connection)
+
+
+@pytest.mark.asyncio
+async def test_update_post_unauthorized(three_posts_inmemory_table_connection):
+    with pytest.raises(post.NotYourPostException):
+        await post.update_post(caller_user_id=2,
+                               post_id=1,
+                               title='Updated_title',
+                               body='Updated_body',
+                               db_connection=three_posts_inmemory_table_connection)
+
+
+@pytest.mark.asyncio
+async def test_update_post(three_posts_inmemory_table_connection):
+    await post.update_post(1, 1, 'Updated_title', 'Updated_body', three_posts_inmemory_table_connection)
+    actual_post = await post.get_post_by_id_async(1, three_posts_inmemory_table_connection)
+    assert actual_post.title == 'Updated_title' and actual_post.body == 'Updated_body'

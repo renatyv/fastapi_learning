@@ -203,16 +203,16 @@ def create_post(user_id: int = Depends(auth.get_current_authenticated_user_id),
 
 
 @api_router.put("/posts/{post_id}", status_code=status.HTTP_200_OK, response_model=post.Post)
-def update_post_info(post_id: int = Path(...),
-                     user_id: int = Depends(auth.get_current_authenticated_user_id),
-                     title: str = Body(None, min_length=1,  # ... means field is optional
-                                       max_length=300),
-                     body: str = Body(None, min_length=0,  # ... means field is optional
-                                      max_length=10000),
-                     db_connection: Connection = Depends(database.get_database_connection)):
+async def update_post_info(post_id: int = Path(...),
+                           user_id: int = Depends(auth.get_current_authenticated_user_id),
+                           title: str = Body(None, min_length=1,  # ... means field is optional
+                                             max_length=300),
+                           body: str = Body(None, min_length=0,  # ... means field is optional
+                                            max_length=10000),
+                           db_connection: AsyncConnection = Depends(database.get_async_db_connection)):
     """Update title or body for specific post"""
     try:
-        return post.update_post(user_id, post_id, title, body, db_connection)
+        return await post.update_post(user_id, post_id, title, body, db_connection)
     except post.NotYourPostException:
         logger.info('Trying to update post {} by non-owner {}', post_id, user_id)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
