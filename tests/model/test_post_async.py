@@ -95,3 +95,10 @@ async def test_update_post(three_posts_inmemory_table_connection):
     await post.update_post(1, 1, 'Updated_title', 'Updated_body', three_posts_inmemory_table_connection)
     actual_post = await post.get_post_by_id_async(1, three_posts_inmemory_table_connection)
     assert actual_post.title == 'Updated_title' and actual_post.body == 'Updated_body'
+
+
+@pytest.mark.asyncio
+async def test_create_new_post(empty_inmemory_table_connection):
+    new_post = await post.create_post(user_id=1, title='Life is going well',
+                                      body='For me', db_connection=empty_inmemory_table_connection)
+    assert new_post.post_id == 1

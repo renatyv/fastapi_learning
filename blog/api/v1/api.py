@@ -184,16 +184,17 @@ async def get_post(post_id: int = Path(..., ge=0.0),  # required, no default val
 
 
 @api_router.post("/posts/", status_code=status.HTTP_201_CREATED, response_model=post.Post)
-def create_post(user_id: int = Depends(auth.get_current_authenticated_user_id),
-                # required, no default value. = None to make optional
-                title: str = Body(..., min_length=1,
-                                  max_length=300),
-                body: str = Body(..., min_length=0,
-                                 max_length=10000),
-                db_connection: Connection = Depends(database.get_database_connection)) -> post.Post:
+async def create_post(user_id: int = Depends(auth.get_current_authenticated_user_id),
+                      # required, no default value. = None to make optional
+                      title: str = Body(..., min_length=1,
+                                        max_length=300),
+                      body: str = Body(..., min_length=0,
+                                       max_length=10000),
+                      db_connection: AsyncConnection = Depends(database.get_async_db_connection)) -> post.Post:
     """create new post"""
     try:
-        return post.create_post(user_id, title, body, db_connection)
+        created_post = await post.create_post(user_id, title, body, db_connection)
+        return created_post
     except post.NoSuchUseridException:
         logger.debug('User not found')
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='No user with such user_id')
