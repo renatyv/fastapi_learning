@@ -24,7 +24,9 @@ class User(BaseModel):
 
 
 async def get_all_users_async(db_connection: AsyncConnection, skip: int = 0, limit: int = 10 ** 6) -> list[User]:
-    """return 'limit' number users starting from 'skip'"""
+    """return 'limit' number users starting from 'skip'
+    Starts and commits a new transaction.
+    """
     users = []
     statement = text("""SELECT
         user_id, username, name, surname, email, password_hash
@@ -47,6 +49,8 @@ async def get_all_users_async(db_connection: AsyncConnection, skip: int = 0, lim
 
 def get_user_by_id(user_id: int, db_connection: Connection) -> Optional[User]:
     """find user by his id
+    Starts and commits a new transaction.
+
     :returns User object, if user is found in database
     :returns None if user is not found"""
     with db_connection.begin():  # within transaction
@@ -72,6 +76,8 @@ def get_user_by_id(user_id: int, db_connection: Connection) -> Optional[User]:
 
 async def get_user_by_username(username: str, db_connection: AsyncConnection) -> Optional[User]:
     """find user by his username
+    Starts and commits a new transaction.
+
     :returns User object, if user is found in database
     :returns None if user is not found"""
     async with db_connection.begin():  # within transaction
@@ -111,8 +117,10 @@ def create_user(db_connection: Connection,
                 email: Optional[str] = None,
                 name: Optional[str] = None,
                 surname: Optional[str] = None) -> User:
-    """adds new user to the database. If email is already in db, raises exception
-    saves hashed password
+    """adds new user to the database.
+    If email is already in db, raises exception, saves hashed password
+    Starts and commits a new transaction.
+
     :raises DuplicateUserCreationException if user with such name and surname exists already
     :raises UnknownException if smth went wrong while creating the user"""
     with db_connection.begin():  # within transaction
@@ -152,6 +160,7 @@ def update_user(db_connection: Connection,
                 email: Optional[str] = None,
                 password_hash: Optional[str] = None) -> User:
     """Updates user info in database.
+    Starts and commits a new transaction.
     :returns User object if update was successful
     :raises UserNotFoundException if user_id is invalid"""
     with db_connection.begin():  # start transaction
@@ -203,6 +212,8 @@ def update_user(db_connection: Connection,
 
 def delete_user(user_id: int, db_connection: Connection):
     """Delete user by user_id. Note, that all user posts will be deleted with CASCADE,
+    Starts and commits a new transaction.
+
     :raises UserNotFoundException if nothing is deleted from database"""
     with db_connection.begin():  # within transaction
         try:

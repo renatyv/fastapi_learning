@@ -21,7 +21,9 @@ class Post(BaseModel):
 async def get_all_posts_async(db_connection: AsyncConnection,
                               skip: int = 0, limit: int = 10 ** 6) -> list[Post]:
     """Returns all posts from database asynchronously.
-    params skip and limit work the same way as for lists"""
+    params skip and limit work the same way as for lists
+    Starts and commits a new transaction.
+    """
     posts = []
     statement = text("""SELECT
                             post_id, user_id, title, body
@@ -68,6 +70,8 @@ class NoSuchUseridException(Exception):
 
 async def create_post(user_id: int, title: str, body: str, db_connection: AsyncConnection) -> Post:
     """creates new post and saves it
+    Starts and commits a new transaction.
+
     :raises NoSuchUseridException if user_id is not found in system"""
     async with db_connection.begin():
         try:
@@ -101,6 +105,8 @@ async def update_post(caller_user_id: int, post_id: int, title: Optional[str], b
                       db_connection: AsyncConnection) -> Post:
     """updates title or body for the post in db.
     title and body are optional. If they are not set, title and body are not updated
+    Starts and commits a new transaction.
+
     :param caller_user_id who requested to update post
     :returns Post object if update was successful
     :raises PostNotFoundException if post_id is invalid
@@ -143,7 +149,9 @@ async def update_post(caller_user_id: int, post_id: int, title: Optional[str], b
 
 
 async def delete_post_async(caller_user_id: int, post_id: int, db_connection: AsyncConnection):
-    """Delete post by post_id. Note, that all post posts will be deleted with CASCADE,
+    """Delete post by post_id. Note, that all post posts will be deleted with CASCADE.
+    Starts and commits a new transaction.
+
     :raises PostNotFoundException if nothing is deleted from database
     :raises NotYourPostException if user_id is wrong"""
     async with db_connection.begin():
