@@ -8,12 +8,12 @@ if [[ $? -ne 0 ]] ; then
 fi
 
 echo "Running code style checks"
-flake8 blog/ --max-line-length 120  --statistics
+poetry run flake8 blog/ --max-line-length 120  --statistics
 if [[ $? -ne 0 ]] ; then
     exit 1
 fi
-flake8 tests/ --max-line-length 120  --statistics
-flake8 tests_api/ --max-line-length 120  --statistics
+poetry run flake8 tests/ --max-line-length 120  --statistics
+poetry run flake8 tests_api/ --max-line-length 120  --statistics
 
 echo 'building containers'
 docker-compose -f docker-compose.yml -f config/docker-compose-debug.yml build
