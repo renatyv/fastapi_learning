@@ -62,19 +62,3 @@ def test_update_post(three_posts_inmemory_table_connection):
     post.update_post(1, 1, 'Updated_title', 'Updated_body', three_posts_inmemory_table_connection)
     actual_post = post.get_post_by_id(1, three_posts_inmemory_table_connection)
     assert actual_post.title == 'Updated_title' and actual_post.body == 'Updated_body'
-
-
-def test_delete_nonexistent_post(empty_inmemory_table_connection):
-    """delete post by id"""
-    with pytest.raises(post.PostNotFoundException):
-        post.delete_post(1, 0, empty_inmemory_table_connection)
-
-
-def test_delete_user(three_posts_inmemory_table_connection):
-    post.delete_post(1, 1, three_posts_inmemory_table_connection)
-    assert post.get_post_by_id(1, three_posts_inmemory_table_connection) is None
-
-
-def test_delete_unauthorized_user(three_posts_inmemory_table_connection):
-    with pytest.raises(post.NotYourPostException):
-        post.delete_post(2, 1, three_posts_inmemory_table_connection)

@@ -161,34 +161,6 @@ def update_post(caller_user_id: int, post_id: int, title: Optional[str], body: O
                             body=body)
 
 
-@retry(exceptions=IntegrityError)
-def delete_post(caller_user_id: int, post_id: int, db_connection: Connection):
-    """Delete post by post_id. Note, that all post posts will be deleted with CASCADE,
-    :raises PostNotFoundException if nothing is deleted from database
-    :raises NotYourPostException if user_id is wrong"""
-    to_delete_post = get_post_by_id(post_id, db_connection)
-    if not to_delete_post:
-        raise PostNotFoundException()
-    if to_delete_post.user_id != caller_user_id:
-        raise NotYourPostException()
-    with db_connection.begin():  # within transaction
-        try:
-            statement = text("""DELETE FROM
-                blog_post
-                WHERE post_id = :post_id""")
-            params = {'post_id': post_id}
-            result: LegacyCursorResult = db_connection.execute(statement, params)
-            deleted_rows: int = result.rowcount
-        except Exception as e:
-            logger.exception('Deleting post_id={} failed. Probably should retry.', post_id)
-            raise UnknownException(e)
-        else:
-            if deleted_rows == 0:
-                raise PostNotFoundException()
-            if deleted_rows > 1:
-                logger.error(f'Many posts with post_id={post_id} were deleted')
-
-
 async def delete_post_async(caller_user_id: int, post_id: int, db_connection: AsyncConnection):
     """Delete post by post_id. Note, that all post posts will be deleted with CASCADE,
     :raises PostNotFoundException if nothing is deleted from database
