@@ -227,13 +227,13 @@ def update_post_info(post_id: int = Path(...),
 
 
 @api_router.delete("/posts/{post_id}", status_code=status.HTTP_200_OK)
-def delete_post(post_id: int,
-                user_id: int = Depends(auth.get_current_authenticated_user_id),
-                db_connection: Connection = Depends(database.get_database_connection)):
+async def delete_post(post_id: int,
+                      user_id: int = Depends(auth.get_current_authenticated_user_id),
+                      db_connection: AsyncConnection = Depends(database.get_async_db_connection)):
     """Delete user by id.
     :raises HTTPException if user is not found, nothing is deleted"""
     try:
-        post.delete_post(user_id, post_id, db_connection)
+        await post.delete_post_async(user_id, post_id, db_connection)
     except post.NotYourPostException:
         logger.info('Trying to delete post {} by non-owner {}', post_id, user_id)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,

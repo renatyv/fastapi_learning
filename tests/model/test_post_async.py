@@ -14,7 +14,7 @@ CREATE_POST_TABLE = """
 
 
 @pytest_asyncio.fixture
-async def empty_inmemory_table_connection():
+async def empty_inmemory_table_connection() -> AsyncConnection:
     # setup inmemory database
     sqlite_engine = create_async_engine('sqlite+aiosqlite://')
     # creating users table
@@ -42,7 +42,33 @@ async def three_posts_inmemory_table_connection(empty_inmemory_table_connection)
 
 
 @pytest.mark.asyncio
-async def test_get_all_posts(three_posts_inmemory_table_connection):
+async def test_get_post_by_post_id_async(three_posts_inmemory_table_connection: AsyncConnection):
+    first_post = await post.get_post_by_id_async(1, three_posts_inmemory_table_connection)
+    assert first_post.post_id == 1 and first_post.user_id == 1 and first_post.title == 'Migrations with yoyo'
+
+
+@pytest.mark.asyncio
+async def test_get_all_posts(three_posts_inmemory_table_connection: AsyncConnection):
     posts = await post.get_all_posts_async(three_posts_inmemory_table_connection)
     assert len(posts) == 3
     assert posts[2].user_id == 2 and posts[2].title == 'Order #2'
+
+
+@pytest.mark.asyncio
+async def test_delete_nonexistent_post(empty_inmemory_table_connection: AsyncConnection):
+    """delete post by id"""
+    with pytest.raises(post.PostNotFoundException):
+        await post.delete_post_async(caller_user_id=1, post_id=0, db_connection=empty_inmemory_table_connection)
+
+
+@pytest.mark.asyncio
+async def test_delete_user(three_posts_inmemory_table_connection: AsyncConnection):
+    await post.delete_post_async(caller_user_id=1, post_id=1, db_connection=three_posts_inmemory_table_connection)
+    deleted_post = await post.get_post_by_id_async(1, three_posts_inmemory_table_connection)
+    assert deleted_post is None
+
+
+@pytest.mark.asyncio
+async def test_delete_unauthorized_user(three_posts_inmemory_table_connection: AsyncConnection):
+    with pytest.raises(post.NotYourPostException):
+        await post.delete_post_async(caller_user_id=2, post_id=1, db_connection=three_posts_inmemory_table_connection)
