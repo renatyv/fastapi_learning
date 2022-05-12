@@ -1,7 +1,7 @@
 from typing import Optional, Any
 
 from fastapi import Query, Path, Body, HTTPException, Depends, APIRouter
-from pydantic import EmailStr
+from pydantic import BaseModel
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import AsyncConnection
 from starlette import status
@@ -14,7 +14,7 @@ from loguru import logger
 import blog.model.auth.user_token as user_token
 from blog.model.auth import user_password
 from blog.model.auth.user_password import NullInPusswordException
-from blog.model.user import VisibleUserInfo
+from blog.model.user import UserInfo
 
 api_router = APIRouter()
 
@@ -38,7 +38,7 @@ async def access_token_from_login_pass(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@api_router.get("/users", status_code=status.HTTP_200_OK, response_model=list[user.VisibleUserInfo])
+@api_router.get("/users", status_code=status.HTTP_200_OK, response_model=list[user.UserInfo])
 async def get_all_users(skip: int = Query(0, ge=0.0, example=0),
                         limit: int = 10,
                         async_db_connection: AsyncConnection = Depends(database.get_async_db_connection)) -> Any:
@@ -57,9 +57,9 @@ async def get_all_users(skip: int = Query(0, ge=0.0, example=0),
 
 @api_router.get("/users/{user_id}",
                 status_code=status.HTTP_302_FOUND,
-                response_model=Optional[user.VisibleUserInfo])
+                response_model=Optional[user.UserInfo])
 def get_user(user_id: int = Path(..., ge=0.0),
-             db_connection: Connection = Depends(database.get_database_connection)) -> Optional[user.VisibleUserInfo]:
+             db_connection: Connection = Depends(database.get_database_connection)) -> Optional[user.UserInfo]:
     """get specific user
     :param db_connection:
     :param user_id is required, greater than 0
@@ -75,26 +75,23 @@ def get_user(user_id: int = Path(..., ge=0.0),
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
 
-@api_router.post("/users/", status_code=status.HTTP_200_OK, response_model=user.VisibleUserInfo)
-def create_user(username: str = Body(...,  # required, no default value. = None to make optional
-                                     min_length=1,
-                                     max_length=250),
+class ReturnedUserInfo(BaseModel):
+    user_id: int
+    user_info: user.UserInfo
+
+
+@api_router.post("/users/", status_code=status.HTTP_200_OK, response_model=ReturnedUserInfo)
+def create_user(user_info: user.UserInfo,
                 password: str = Body(..., min_length=1,
                                      max_length=300),
-                email: Optional[EmailStr] = Body(None),
-                name: Optional[str] = Body(None, max_length=100),
-                surname: Optional[str] = Body(None, max_length=100),
-                db_connection: Connection = Depends(database.get_database_connection)) -> user.VisibleUserInfo:
+                db_connection: Connection = Depends(database.get_database_connection)) -> ReturnedUserInfo:
     """creates a new user, returning it as a result"""
     try:
-        return user.create_user(username=username,
-                                password_hash=user_password.hash_password(password),
-                                email=email,
-                                name=name,
-                                surname=surname,
-                                db_connection=db_connection).user_info
+        hashed_password = user_password.hash_password(password)
+        created_user: user.User = user.create_user(db_connection, user_info, hashed_password)
+        return ReturnedUserInfo(user_id=created_user.user_id, user_info=created_user.user_info)
     except user.DuplicateUserCreationException as e:
-        logger.info('Trying to create duplicate username:{}', username)
+        logger.info('Trying to create duplicate username:{}', user_info.username)
         raise HTTPException(status_code=status.HTTP_304_NOT_MODIFIED,
                             detail=str(e))
     except Exception:
@@ -102,26 +99,15 @@ def create_user(username: str = Body(...,  # required, no default value. = None 
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-@api_router.put("/users", status_code=status.HTTP_200_OK, response_model=user.VisibleUserInfo)
-def update_user_info(user_id: int = Depends(auth.get_current_authenticated_user_id),
-                     username: Optional[str] = Body(None,  # optional, set '...' to make optional
-                                                    min_length=1, max_length=250),
-                     password: Optional[str] = Body(None,  # optional, set '...' to make optional
-                                                    min_length=1, max_length=300),
-                     email: Optional[EmailStr] = Body(None),
-                     name: Optional[str] = Body(None, max_length=100),
-                     surname: Optional[str] = Body(None, max_length=100),
-                     db_connection: Connection = Depends(database.get_database_connection)) -> VisibleUserInfo:
+@api_router.put("/users", status_code=status.HTTP_200_OK, response_model=user.UserInfo)
+def update_user_info(user_info: user.UserInfo,
+                     user_id: int = Depends(auth.get_current_authenticated_user_id),
+                     db_connection: Connection = Depends(database.get_database_connection)) -> UserInfo:
     """Update name or surname for user"""
     try:
-        password_hash = user_password.hash_password(password) if password else None
-        return user.update_user(user_id=user_id,
-                                username=username,
-                                password_hash=password_hash,
-                                email=email,
-                                name=name,
-                                surname=surname,
-                                db_connection=db_connection).user_info
+        return user.update_user_info(user_id=user_id,
+                                     user_info=user_info,
+                                     db_connection=db_connection)
     except NullInPusswordException:
         logger.warning('Someone trying to use null byte in password')
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
@@ -186,6 +172,7 @@ async def get_post(post_id: int = Path(..., ge=0.0),  # required, no default val
 @api_router.post("/posts/", status_code=status.HTTP_201_CREATED, response_model=post.Post)
 async def create_post(user_id: int = Depends(auth.get_current_authenticated_user_id),
                       # required, no default value. = None to make optional
+                      # check
                       title: str = Body(..., min_length=1,
                                         max_length=300),
                       body: str = Body(..., min_length=0,

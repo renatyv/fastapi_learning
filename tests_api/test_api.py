@@ -32,7 +32,7 @@ def test_get_first_post():
 
 @pytest.fixture
 def authorization_header_userid_2() -> dict[str, str]:
-    """:returns {'Authorizatino': 'Bearer access_token'}"""
+    """:returns {'Authorization': 'Bearer access_token'}"""
     form_data = {"username": "2", "password": "22"}
     token = requests.post(f"{API_URL}/token", data=form_data).json().get('access_token')
     return {'Authorization': f'Bearer {token}'}
@@ -66,11 +66,11 @@ def test_create_auth_delete_user():
     username = 'renat'
     password = 'very_unusual_username1'
     response = requests.post(f"{API_URL}/users/",
-                             json={"username": username,
-                                   "password": password,
-                                   "email": "user@example.com",
-                                   "name": "renat",
-                                   "surname": "u"})
+                             json={'user_info': {"username": username,
+                                                 "email": "user@example.com",
+                                                 "name": "renat",
+                                                 "surname": "u"},
+                                   "password": password})
     assert response.status_code == 200
     # authenticate
     form_data = {"username": username,

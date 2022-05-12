@@ -40,41 +40,54 @@ def test_get_user_1(three_users_inmemory_table_connection):
     # user with this ID should exist
     user_id = 1
     found_user = user.get_user_by_id(user_id, three_users_inmemory_table_connection)
-    assert found_user.user_info.user_id == user_id
+    assert found_user.user_id == user_id
 
 
 def test_create_new_user(empty_inmemory_table_connection):
-    # keyword arguments are used for creation because of Pydantic
+    new_user_info = user.UserInfo(username='maratyv',
+                                  email='maratyv@gmail.com',
+                                  name='Marat',
+                                  surname='Iuldashev')
     created_user = user.create_user(empty_inmemory_table_connection,
-                                    username='marat', password_hash='marats_phash')
-    found_user = user.get_user_by_id(created_user.user_info.user_id, empty_inmemory_table_connection)
+                                    new_user_info, password_hash='marats_hash')
+    found_user = user.get_user_by_id(created_user.user_id, empty_inmemory_table_connection)
     assert found_user == created_user
 
 
 def test_create_dublicate_user(empty_inmemory_table_connection):
     with pytest.raises(user.DuplicateUserCreationException):
-        user.create_user(empty_inmemory_table_connection, username='renatyv', password_hash='ph_renatyv')
-        assert user.create_user(empty_inmemory_table_connection, username='renatyv', password_hash='ph_renatyv')
+        new_user_info = user.UserInfo(username='maratyv',
+                                      email='maratyv@gmail.com',
+                                      name='Marat',
+                                      surname='Iuldashev')
+        user.create_user(empty_inmemory_table_connection, new_user_info, password_hash='ph_renatyv')
+        assert user.create_user(empty_inmemory_table_connection, new_user_info, password_hash='ph_renatyv')
 
 
 def test_update_nonexistent_user(empty_inmemory_table_connection):
     with pytest.raises(user.UserNotFoundException):
-        user.update_user(user_id=1,
-                         username='renat',
-                         surname='iuldashev',
-                         db_connection=empty_inmemory_table_connection)
+        new_user_info = user.UserInfo(username='renatyv',
+                                      email='renatyv@gmail.com',
+                                      name='Renat',
+                                      surname='iuldashev')
+        user.update_user_info(empty_inmemory_table_connection,
+                              user_id=1,
+                              user_info=new_user_info)
 
 
 def test_update_user(three_users_inmemory_table_connection):
-    new_surname = 'iuldashev'
-    user.update_user(user_id=1,
-                     surname=new_surname,
-                     db_connection=three_users_inmemory_table_connection)
+    new_user_info = user.UserInfo(username='renatyv',
+                                  email='renatyv@gmail.com',
+                                  name='Renat',
+                                  surname='iuldashev')
+    user.update_user_info(user_id=1,
+                          user_info=new_user_info,
+                          db_connection=three_users_inmemory_table_connection)
     updated_user = user.get_user_by_id(user_id=1, db_connection=three_users_inmemory_table_connection)
-    assert updated_user.user_info.surname == new_surname
+    assert updated_user.user_info.surname == new_user_info.surname
 
 
-def test_delete_inexistent_user(empty_inmemory_table_connection):
+def test_delete_nonexistent_user(empty_inmemory_table_connection):
     """delete user by id"""
     with pytest.raises(user.UserNotFoundException):
         user.delete_user(user_id=0, db_connection=empty_inmemory_table_connection)

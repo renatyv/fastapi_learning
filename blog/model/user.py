@@ -3,24 +3,26 @@ from typing import Optional
 from retry import retry
 from sqlalchemy.exc import IntegrityError
 import sqlalchemy.engine
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, EmailStr
 from sqlalchemy import text
-from sqlalchemy.engine import Connection, LegacyCursorResult, Result
+from sqlalchemy.engine import Connection, Result, CursorResult
 from sqlalchemy.ext.asyncio import AsyncConnection
 from loguru import logger
 
 
-class VisibleUserInfo(BaseModel):
-    user_id: int
-    username: str
-    name: Optional[str]
-    surname: Optional[str]
-    email: Optional[str]
+class UserInfo(BaseModel):
+    username: str = Field(...,  # required, no default value. = None to make optional
+                          min_length=1,
+                          max_length=250)
+    email: Optional[EmailStr] = EmailStr(None)
+    name: Optional[str] = Field(None, max_length=100)
+    surname: Optional[str] = Field(None, max_length=100)
 
 
 class User(BaseModel):
-    user_info: VisibleUserInfo
-    password_hash: str
+    user_id: int = Field(..., ge=0)
+    user_info: UserInfo
+    password_hash: str = Field(..., min_length=1, max_length=100)
 
 
 async def get_all_users_async(db_connection: AsyncConnection, skip: int = 0, limit: int = 10 ** 6) -> list[User]:
@@ -37,13 +39,12 @@ async def get_all_users_async(db_connection: AsyncConnection, skip: int = 0, lim
         result: Result = await db_connection.execute(statement, parameters=params)
         rows = result.all()
         for user_id, username, name, surname, email, password_hash in rows:
-            users.append(User(
-                user_info=VisibleUserInfo(user_id=user_id,
-                                          username=username,
-                                          name=name,
-                                          surname=surname,
-                                          email=email),
-                password_hash=password_hash))
+            users.append(User(user_id=user_id,
+                              user_info=UserInfo(username=username,
+                                                 name=name,
+                                                 surname=surname,
+                                                 email=email),
+                              password_hash=password_hash))
     return users
 
 
@@ -66,11 +67,11 @@ def get_user_by_id(user_id: int, db_connection: Connection) -> Optional[User]:
             return None
         else:
             for user_id, username, name, surname, email, password_hash in rows:
-                return User(user_info=VisibleUserInfo(user_id=user_id,
-                                                      username=username,
-                                                      name=name,
-                                                      surname=surname,
-                                                      email=email),
+                return User(user_id=user_id,
+                            user_info=UserInfo(username=username,
+                                               name=name,
+                                               surname=surname,
+                                               email=email),
                             password_hash=password_hash)
 
 
@@ -94,11 +95,11 @@ async def get_user_by_username(username: str, db_connection: AsyncConnection) ->
             return None
         else:
             for user_id, username, name, surname, email, password_hash in rows:
-                return User(user_info=VisibleUserInfo(user_id=user_id,
-                                                      username=username,
-                                                      name=name,
-                                                      surname=surname,
-                                                      email=email),
+                return User(user_id=user_id,
+                            user_info=UserInfo(username=username,
+                                               name=name,
+                                               surname=surname,
+                                               email=email),
                             password_hash=password_hash)
             return None
 
@@ -112,11 +113,8 @@ class UnknownException(Exception):
 
 
 def create_user(db_connection: Connection,
-                username: str,
-                password_hash: str,
-                email: Optional[str] = None,
-                name: Optional[str] = None,
-                surname: Optional[str] = None) -> User:
+                user_info: UserInfo,
+                password_hash: str) -> User:
     """adds new user to the database.
     If email is already in db, raises exception, saves hashed password
     Starts and commits a new transaction.
@@ -128,8 +126,10 @@ def create_user(db_connection: Connection,
             statement = text("""INSERT INTO blog_user(username, email, password_hash, name, surname)
                                 VALUES (:username, :email, :password_hash, :name, :surname)
                                 RETURNING user_id""")
-            params = {'username': username, 'email': email, 'password_hash': password_hash, 'name': name,
-                      'surname': surname}
+            params = {'username': user_info.username, 'email': user_info.email,
+                      'name': user_info.name,
+                      'surname': user_info.surname,
+                      'password_hash': password_hash}
             row: sqlalchemy.engine.Row = db_connection.execute(statement, params).fetchone()
             user_id = row[0]
         except IntegrityError as ie:
@@ -138,13 +138,7 @@ def create_user(db_connection: Connection,
             logger.exception('Unknown DB query error')
             raise UnknownException(e)
         else:
-            return User(
-                user_info=VisibleUserInfo(user_id=user_id,
-                                          username=username,
-                                          name=name,
-                                          surname=surname,
-                                          email=email),
-                password_hash=password_hash)
+            return User(user_id=user_id, user_info=user_info, password_hash=password_hash)
 
 
 class UserNotFoundException(Exception):
@@ -152,46 +146,27 @@ class UserNotFoundException(Exception):
 
 
 @retry(exceptions=IntegrityError)
-def update_user(db_connection: Connection,
-                user_id: int,
-                username: Optional[str] = None,
-                name: Optional[str] = None,
-                surname: Optional[str] = None,
-                email: Optional[str] = None,
-                password_hash: Optional[str] = None) -> User:
+def update_user_info(db_connection: Connection,
+                     user_id: int,
+                     user_info: UserInfo) -> UserInfo:
     """Updates user info in database.
     Starts and commits a new transaction.
     :returns User object if update was successful
     :raises UserNotFoundException if user_id is invalid"""
     with db_connection.begin():  # start transaction
-        user_to_update = get_user_by_id(user_id, db_connection)
-        if not user_to_update:
-            raise UserNotFoundException()
-        if username:
-            user_to_update.user_info.username = username
-        if name:
-            user_to_update.user_info.name = name
-        if surname:
-            user_to_update.user_info.surname = surname
-        if email:
-            user_to_update.user_info.email = email
-        if password_hash:
-            user_to_update.password_hash = password_hash
         try:
             statement = text("""UPDATE blog_user
                                 SET
                                     username = :username,
                                     name = :name,
                                     surname = :surname,
-                                    email = :email,
-                                    password_hash = :password_hash
+                                    email = :email
                                 WHERE user_id = :user_id
-                                RETURNING username, name, surname, email, password_hash""")
-            params = {'username': user_to_update.user_info.username,
-                      'name': user_to_update.user_info.name,
-                      'surname': user_to_update.user_info.surname,
-                      'email': user_to_update.user_info.email,
-                      'password_hash': user_to_update.password_hash,
+                                RETURNING username, name, surname, email""")
+            params = {'username': user_info.username,
+                      'name': user_info.name,
+                      'surname': user_info.surname,
+                      'email': user_info.email,
                       'user_id': user_id}
             row = db_connection.execute(statement, params).fetchone()
         except Exception:
@@ -199,15 +174,13 @@ def update_user(db_connection: Connection,
             raise UnknownException()
         else:
             if row is None:
-                raise UnknownException()
+                raise UserNotFoundException()
             else:
-                username, name, surname, email, password_hash = row
-                return User(user_info=VisibleUserInfo(user_id=user_id,
-                                                      username=username,
-                                                      name=name,
-                                                      surname=surname,
-                                                      email=email),
-                            password_hash=password_hash)
+                username, name, surname, email = row
+                return UserInfo(username=username,
+                                name=name,
+                                surname=surname,
+                                email=email)
 
 
 def delete_user(user_id: int, db_connection: Connection):
@@ -219,7 +192,7 @@ def delete_user(user_id: int, db_connection: Connection):
         try:
             statement = text("""DELETE FROM blog_user WHERE user_id = :user_id""")
             params = {'user_id': user_id}
-            result: LegacyCursorResult = db_connection.execute(statement, params)
+            result: CursorResult = db_connection.execute(statement, params)
             deleted_rows = result.rowcount
         except Exception as e:
             logger.exception('Unknown DB query error')

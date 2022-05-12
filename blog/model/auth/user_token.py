@@ -33,7 +33,7 @@ async def authenticate_user(username: str,
         raise user.UserNotFoundException()
     if not user_password.verify_password(password, found_user.password_hash):
         raise PasswordDoesNotMatchException()
-    jwt_token_subject = str(found_user.user_info.user_id)
+    jwt_token_subject = str(found_user.user_id)
     return _create_access_token(data={"sub": jwt_token_subject},
                                 token_settings=token_settings)
 
