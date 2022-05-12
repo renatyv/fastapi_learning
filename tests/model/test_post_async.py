@@ -44,14 +44,16 @@ async def three_posts_inmemory_table_connection(empty_inmemory_table_connection)
 @pytest.mark.asyncio
 async def test_get_post_by_post_id_async(three_posts_inmemory_table_connection: AsyncConnection):
     first_post = await post.get_post_by_id_async(1, three_posts_inmemory_table_connection)
-    assert first_post.post_id == 1 and first_post.user_id == 1 and first_post.title == 'Migrations with yoyo'
+    assert first_post.post_id == 1 and \
+           first_post.author_id == 1 and \
+           first_post.post_info.title == 'Migrations with yoyo'
 
 
 @pytest.mark.asyncio
 async def test_get_all_posts(three_posts_inmemory_table_connection: AsyncConnection):
     posts = await post.get_all_posts_async(three_posts_inmemory_table_connection)
     assert len(posts) == 3
-    assert posts[2].user_id == 2 and posts[2].title == 'Order #2'
+    assert posts[2].author_id == 2 and posts[2].post_info.title == 'Order #2'
 
 
 @pytest.mark.asyncio
@@ -77,7 +79,9 @@ async def test_delete_unauthorized_user(three_posts_inmemory_table_connection: A
 @pytest.mark.asyncio
 async def test_update_nonexistent_post(empty_inmemory_table_connection):
     with pytest.raises(post.PostNotFoundException):
-        await post.update_post(1, 1, 'title', 'body', empty_inmemory_table_connection)
+        await post.update_post(1, 1,
+                               post.PostInfo(title='title', body='body'),
+                               empty_inmemory_table_connection)
 
 
 @pytest.mark.asyncio
@@ -85,20 +89,22 @@ async def test_update_post_unauthorized(three_posts_inmemory_table_connection):
     with pytest.raises(post.NotYourPostException):
         await post.update_post(caller_user_id=2,
                                post_id=1,
-                               title='Updated_title',
-                               body='Updated_body',
+                               post_info=post.PostInfo(title='Updated_title', body='Updated_body'),
                                db_connection=three_posts_inmemory_table_connection)
 
 
 @pytest.mark.asyncio
 async def test_update_post(three_posts_inmemory_table_connection):
-    await post.update_post(1, 1, 'Updated_title', 'Updated_body', three_posts_inmemory_table_connection)
+    await post.update_post(1, 1,
+                           post.PostInfo(title='Updated_title', body='Updated_body'),
+                           three_posts_inmemory_table_connection)
     actual_post = await post.get_post_by_id_async(1, three_posts_inmemory_table_connection)
-    assert actual_post.title == 'Updated_title' and actual_post.body == 'Updated_body'
+    assert actual_post.post_info.title == 'Updated_title' and actual_post.post_info.body == 'Updated_body'
 
 
 @pytest.mark.asyncio
 async def test_create_new_post(empty_inmemory_table_connection):
-    new_post = await post.create_post(user_id=1, title='Life is going well',
-                                      body='For me', db_connection=empty_inmemory_table_connection)
+    new_post = await post.create_post(user_id=1,
+                                      post_info=post.PostInfo(title='Life is going well', body='For me'),
+                                      db_connection=empty_inmemory_table_connection)
     assert new_post.post_id == 1

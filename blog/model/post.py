@@ -2,7 +2,7 @@ from typing import Optional
 
 import sqlalchemy
 from loguru import logger
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.engine import LegacyCursorResult
 from sqlalchemy.exc import IntegrityError
@@ -10,11 +10,17 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 from retry import retry
 
 
+class PostInfo(BaseModel):
+    title: str = Field(..., min_length=1,
+                       max_length=300)
+    body: str = Field(..., min_length=0,
+                      max_length=10000)
+
+
 class Post(BaseModel):
     post_id: int
-    user_id: int
-    title: str
-    body: str
+    author_id: int
+    post_info: PostInfo
 
 
 @retry(tries=2, logger=logger)
@@ -34,10 +40,10 @@ async def get_all_posts_async(db_connection: AsyncConnection,
         result = await db_connection.execute(statement, parameters=params)
         rows = result.fetchall()
         for post_id, user_id, title, body in rows:
-            posts.append(Post(user_id=user_id,
+            posts.append(Post(author_id=user_id,
                               post_id=post_id,
-                              title=title,
-                              body=body))
+                              post_info=PostInfo(title=title,
+                                                 body=body)))
     return posts
 
 
@@ -56,7 +62,9 @@ async def get_post_by_id_async(post_id: int, db_connection: AsyncConnection) -> 
         return None
     else:
         for post_id, user_id, title, body in rows:
-            return Post(post_id=post_id, user_id=user_id, title=title, body=body)
+            return Post(post_id=post_id, author_id=user_id,
+                        post_info=PostInfo(title=title,
+                                           body=body))
         return None
 
 
@@ -68,7 +76,7 @@ class NoSuchUseridException(Exception):
     pass
 
 
-async def create_post(user_id: int, title: str, body: str, db_connection: AsyncConnection) -> Post:
+async def create_post(user_id: int, post_info: PostInfo, db_connection: AsyncConnection) -> Post:
     """creates new post and saves it
     Starts and commits a new transaction.
 
@@ -79,7 +87,7 @@ async def create_post(user_id: int, title: str, body: str, db_connection: AsyncC
                 """INSERT INTO blog_post(user_id, title, body)
                 VALUES (:user_id, :title, :body)
                 RETURNING post_id""")
-            params = {'user_id': user_id, 'title': title, 'body': body}
+            params = {'user_id': user_id, 'title': post_info.title, 'body': post_info.body}
             result = await db_connection.execute(statement, parameters=params)
             row: sqlalchemy.engine.Row = result.fetchone()
             post_id = row[0]
@@ -89,7 +97,7 @@ async def create_post(user_id: int, title: str, body: str, db_connection: AsyncC
             raise NoSuchUseridException()
         else:
             logger.debug('post_id={} for user_id={} is created', post_id, user_id)
-            return Post(post_id=post_id, user_id=user_id, title=title, body=body)
+            return Post(post_id=post_id, author_id=user_id, post_info=post_info)
 
 
 class PostNotFoundException(Exception):
@@ -101,7 +109,9 @@ class NotYourPostException(Exception):
 
 
 @retry(exceptions=IntegrityError)
-async def update_post(caller_user_id: int, post_id: int, title: Optional[str], body: Optional[str],
+async def update_post(caller_user_id: int,
+                      post_id: int,
+                      post_info: PostInfo,
                       db_connection: AsyncConnection) -> Post:
     """updates title or body for the post in db.
     title and body are optional. If they are not set, title and body are not updated
@@ -110,24 +120,22 @@ async def update_post(caller_user_id: int, post_id: int, title: Optional[str], b
     :param caller_user_id who requested to update post
     :returns Post object if update was successful
     :raises PostNotFoundException if post_id is invalid
-    :raises NotYourPostException if user_id is wrong"""
+    :raises NotYourPostException if user_id is wrong
+    :raises ValidationError if title and body a wrong"""
     async with db_connection.begin():  # start transaction
+        # check that post exists
         to_update_post = await get_post_by_id_async(post_id, db_connection)
         if not to_update_post:
-            raise PostNotFoundException
-        if to_update_post.user_id != caller_user_id:
+            raise PostNotFoundException()
+        if to_update_post.author_id != caller_user_id:
             raise NotYourPostException()
-        if title:
-            to_update_post.title = title
-        if body:
-            to_update_post.body = body
         try:
             statement = text("""UPDATE blog_post
                                     SET title = :title, body = :body
                                     WHERE post_id = :post_id
                                     RETURNING user_id, title, body""")
-            params = {'title': to_update_post.title,
-                      'body': to_update_post.body,
+            params = {'title': post_info.title,
+                      'body': post_info.body,
                       'post_id': to_update_post.post_id}
             result = await db_connection.execute(statement, parameters=params)
             row = result.fetchone()
@@ -142,10 +150,9 @@ async def update_post(caller_user_id: int, post_id: int, title: Optional[str], b
                 raise PostNotFoundException()
             else:
                 caller_user_id, title, body = row
-                return Post(post_id=post_id,
-                            user_id=caller_user_id,
-                            title=title,
-                            body=body)
+                return Post(post_id=post_id, author_id=caller_user_id,
+                            post_info=PostInfo(title=title,
+                                               body=body))
 
 
 async def delete_post_async(caller_user_id: int, post_id: int, db_connection: AsyncConnection):
@@ -158,7 +165,7 @@ async def delete_post_async(caller_user_id: int, post_id: int, db_connection: As
         to_delete_post = await get_post_by_id_async(post_id, db_connection)
         if not to_delete_post:
             raise PostNotFoundException()
-        if to_delete_post.user_id != caller_user_id:
+        if to_delete_post.author_id != caller_user_id:
             raise NotYourPostException()
         try:
             statement = text("""DELETE FROM

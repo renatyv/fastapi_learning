@@ -43,10 +43,11 @@ def test_update_post(authorization_header_userid_2):
     # find post by user id
     post_id = 7
     response = requests.put(f'{API_URL}/posts/{post_id}',
-                            json={"title": "title123"},
+                            json={"title": "title123",
+                                  'body': 'test_body'},
                             headers=authorization_header_userid_2)
-    assert response.json().get('title') == 'title123'
-    assert requests.get(f"{API_URL}/posts/{response.json().get('post_id')}").json().get('title') == 'title123'
+    assert response.json().get('post_info').get('title') == 'title123'
+    assert requests.get(f"{API_URL}/posts/{7}").json().get('post_info').get('title') == 'title123'
 
 
 def test_create_delete_post(authorization_header_userid_2):

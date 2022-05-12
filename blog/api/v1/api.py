@@ -170,17 +170,12 @@ async def get_post(post_id: int = Path(..., ge=0.0),  # required, no default val
 
 
 @api_router.post("/posts/", status_code=status.HTTP_201_CREATED, response_model=post.Post)
-async def create_post(user_id: int = Depends(auth.get_current_authenticated_user_id),
-                      # required, no default value. = None to make optional
-                      # check
-                      title: str = Body(..., min_length=1,
-                                        max_length=300),
-                      body: str = Body(..., min_length=0,
-                                       max_length=10000),
+async def create_post(post_info: post.PostInfo,
+                      user_id: int = Depends(auth.get_current_authenticated_user_id),
                       db_connection: AsyncConnection = Depends(database.get_async_db_connection)) -> post.Post:
     """create new post"""
     try:
-        created_post = await post.create_post(user_id, title, body, db_connection)
+        created_post = await post.create_post(user_id, post_info, db_connection)
         return created_post
     except post.NoSuchUseridException:
         logger.debug('User not found')
@@ -191,16 +186,13 @@ async def create_post(user_id: int = Depends(auth.get_current_authenticated_user
 
 
 @api_router.put("/posts/{post_id}", status_code=status.HTTP_200_OK, response_model=post.Post)
-async def update_post_info(post_id: int = Path(...),
+async def update_post_info(post_info: post.PostInfo,
+                           post_id: int = Path(...),
                            user_id: int = Depends(auth.get_current_authenticated_user_id),
-                           title: str = Body(None, min_length=1,  # ... means field is optional
-                                             max_length=300),
-                           body: str = Body(None, min_length=0,  # ... means field is optional
-                                            max_length=10000),
                            db_connection: AsyncConnection = Depends(database.get_async_db_connection)):
     """Update title or body for specific post"""
     try:
-        return await post.update_post(user_id, post_id, title, body, db_connection)
+        return await post.update_post(user_id, post_id, post_info, db_connection)
     except post.NotYourPostException:
         logger.info('Trying to update post {} by non-owner {}', post_id, user_id)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
