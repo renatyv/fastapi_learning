@@ -1,6 +1,6 @@
 from typing import Optional, Any
 
-from fastapi import Query, Path, Body, HTTPException, Depends, APIRouter
+from fastapi import Query, Path, HTTPException, Depends, APIRouter
 from pydantic import BaseModel
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import AsyncConnection
@@ -12,7 +12,6 @@ from blog.model import user
 from blog.model import post
 from loguru import logger
 import blog.model.auth.user_token as user_token
-from blog.model.auth import user_password
 from blog.model.auth.user_password import NullInPusswordException
 from blog.model.user import UserInfo
 
@@ -81,17 +80,14 @@ class ReturnedUserInfo(BaseModel):
 
 
 @api_router.post("/users/", status_code=status.HTTP_200_OK, response_model=ReturnedUserInfo)
-def create_user(user_info: user.UserInfo,
-                password: str = Body(..., min_length=1,
-                                     max_length=300),
+def create_user(user_create_data: user.UserCreationData,
                 db_connection: Connection = Depends(database.get_database_connection)) -> ReturnedUserInfo:
     """creates a new user, returning it as a result"""
     try:
-        hashed_password = user_password.hash_password(password)
-        created_user: user.User = user.create_user(db_connection, user_info, hashed_password)
+        created_user: user.User = user.create_user(db_connection, user_create_data)
         return ReturnedUserInfo(user_id=created_user.user_id, user_info=created_user.user_info)
     except user.DuplicateUserCreationException as e:
-        logger.info('Trying to create duplicate username:{}', user_info.username)
+        logger.info('Trying to create duplicate username:{}', user_create_data.user_info.username)
         raise HTTPException(status_code=status.HTTP_304_NOT_MODIFIED,
                             detail=str(e))
     except Exception:

@@ -9,6 +9,8 @@ from sqlalchemy.engine import Connection, Result, CursorResult
 from sqlalchemy.ext.asyncio import AsyncConnection
 from loguru import logger
 
+from blog.model.auth.user_password import hash_password
+
 
 class UserInfo(BaseModel):
     username: str = Field(...,  # required, no default value. = None to make optional
@@ -112,9 +114,13 @@ class UnknownException(Exception):
     pass
 
 
+class UserCreationData(BaseModel):
+    password: str = Field(..., min_length=1, max_length=300)
+    user_info: UserInfo
+
+
 def create_user(db_connection: Connection,
-                user_info: UserInfo,
-                password_hash: str) -> User:
+                create_user_data: UserCreationData) -> User:
     """adds new user to the database.
     If email is already in db, raises exception, saves hashed password
     Starts and commits a new transaction.
@@ -123,6 +129,8 @@ def create_user(db_connection: Connection,
     :raises UnknownException if smth went wrong while creating the user"""
     with db_connection.begin():  # within transaction
         try:
+            user_info = create_user_data.user_info
+            password_hash = hash_password(create_user_data.password)
             statement = text("""INSERT INTO blog_user(username, email, password_hash, name, surname)
                                 VALUES (:username, :email, :password_hash, :name, :surname)
                                 RETURNING user_id""")

@@ -49,7 +49,8 @@ def test_create_new_user(empty_inmemory_table_connection):
                                   name='Marat',
                                   surname='Iuldashev')
     created_user = user.create_user(empty_inmemory_table_connection,
-                                    new_user_info, password_hash='marats_hash')
+                                    user.UserCreationData(password='maratyv',
+                                                          user_info=new_user_info))
     found_user = user.get_user_by_id(created_user.user_id, empty_inmemory_table_connection)
     assert found_user == created_user
 
@@ -60,8 +61,10 @@ def test_create_dublicate_user(empty_inmemory_table_connection):
                                       email='maratyv@gmail.com',
                                       name='Marat',
                                       surname='Iuldashev')
-        user.create_user(empty_inmemory_table_connection, new_user_info, password_hash='ph_renatyv')
-        assert user.create_user(empty_inmemory_table_connection, new_user_info, password_hash='ph_renatyv')
+        user_creation_data = user.UserCreationData(password='maratyv',
+                                                   user_info=new_user_info)
+        user.create_user(empty_inmemory_table_connection, user_creation_data)
+        assert user.create_user(empty_inmemory_table_connection, user_creation_data)
 
 
 def test_update_nonexistent_user(empty_inmemory_table_connection):
