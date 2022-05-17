@@ -1,3 +1,4 @@
+import asyncio
 from typing import Optional
 
 from retry import retry
@@ -27,9 +28,11 @@ class User(BaseModel):
     password_hash: str = Field(..., min_length=1, max_length=100)
 
 
-async def get_all_users_async(db_connection: AsyncConnection, skip: int = 0, limit: int = 10 ** 6) -> list[User]:
+async def get_all_users_async(db_connection: AsyncConnection, skip: int = 0, limit: int = 10 ** 6,
+                              TIMEOUT=1.0) -> list[User]:
     """return 'limit' number users starting from 'skip'
     Starts and commits a new transaction.
+    :raises asyncio.TimeoutError
     """
     users = []
     statement = text("""SELECT
@@ -38,7 +41,8 @@ async def get_all_users_async(db_connection: AsyncConnection, skip: int = 0, lim
     LIMIT :limit OFFSET :skip""")
     params = {'skip': skip, 'limit': limit}
     async with db_connection.begin():  # within transaction
-        result: Result = await db_connection.execute(statement, parameters=params)
+        result: Result = await asyncio.wait_for(db_connection.execute(statement, parameters=params),
+                                                timeout=TIMEOUT)
         rows = result.all()
         for user_id, username, name, surname, email, password_hash in rows:
             users.append(User(user_id=user_id,
@@ -56,25 +60,26 @@ def get_user_by_id(user_id: int, db_connection: Connection) -> Optional[User]:
 
     :returns User object, if user is found in database
     :returns None if user is not found"""
-    with db_connection.begin():  # within transaction
-        try:
-            statement = text(
-                """SELECT user_id, username, name, surname, email, password_hash
-                FROM blog_user
-                WHERE user_id = :user_id""")
-            params = {'user_id': user_id}
+
+    try:
+        statement = text(
+            """SELECT user_id, username, name, surname, email, password_hash
+            FROM blog_user
+            WHERE user_id = :user_id""")
+        params = {'user_id': user_id}
+        with db_connection.begin():  # within transaction
             rows = db_connection.execute(statement, **params).fetchall()
-        except Exception:
-            logger.exception('Unknown DB query error')
-            return None
-        else:
-            for user_id, username, name, surname, email, password_hash in rows:
-                return User(user_id=user_id,
-                            user_info=UserInfo(username=username,
-                                               name=name,
-                                               surname=surname,
-                                               email=email),
-                            password_hash=password_hash)
+    except Exception:
+        logger.exception('Unknown DB query error')
+        return None
+    else:
+        for user_id, username, name, surname, email, password_hash in rows:
+            return User(user_id=user_id,
+                        user_info=UserInfo(username=username,
+                                           name=name,
+                                           surname=surname,
+                                           email=email),
+                        password_hash=password_hash)
 
 
 async def get_user_by_username(username: str, db_connection: AsyncConnection) -> Optional[User]:
